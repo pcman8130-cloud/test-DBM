@@ -37,6 +37,12 @@
 # Visual Studio cache directory
 .vs/
 
+# DungeonVM.* (.NET) build output
+[Bb]in/
+[Oo]bj/
+DungeonVM.Simulator/bin/**/run_logs.jsonl
+DungeonVM.Simulator/bin/**/balance_suggestions.json
+
 # Gradle cache directory
 .gradle/
 
@@ -56,6 +62,12 @@ ExportedObj/
 *.svd
 *.pdb
 *.mdb
+
+# DungeonVM.* are hand-written .NET projects (not Unity-generated) - keep them tracked
+!DungeonVM.sln
+!DungeonVM.Core/DungeonVM.Core.csproj
+!DungeonVM.Simulator/DungeonVM.Simulator.csproj
+!DungeonVM.LLM/DungeonVM.LLM.csproj
 *.opendb
 *.VC.db
 
