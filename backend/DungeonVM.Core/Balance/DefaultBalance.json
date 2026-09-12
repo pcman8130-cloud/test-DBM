@@ -1,0 +1,96 @@
+{
+  "weapons": {
+    "tierDamageMultiplier": 1.6,
+    "maxTier": 5,
+    "table": {
+      "Sword":  { "row": "Front", "baseDamage": 12, "attacksPerSecond": 1.2, "bonusHealth": 20, "pullAggro": 0 },
+      "Shield": { "row": "Front", "baseDamage": 5,  "attacksPerSecond": 0.8, "bonusHealth": 60, "pullAggro": 1.0 },
+      "Dagger": { "row": "Front", "baseDamage": 7,  "attacksPerSecond": 2.2, "bonusHealth": 10, "pullAggro": 0 },
+      "Bow":    { "row": "Back",  "baseDamage": 10, "attacksPerSecond": 1.4, "bonusHealth": 8,  "pullAggro": 0 },
+      "Staff":  { "row": "Back",  "baseDamage": 9,  "attacksPerSecond": 0.9, "bonusHealth": 8,  "pullAggro": 0 },
+      "Bible":  { "row": "Back",  "baseDamage": 4,  "attacksPerSecond": 1.0, "bonusHealth": 8,  "pullAggro": 0 }
+    }
+  },
+  "armor": {
+    "dodgeClampMax": 0.75,
+    "rollRanges": {
+      "Common":    { "minHp": 10, "maxHp": 25,  "minAtk": 0.00, "maxAtk": 0.03, "minDodge": 0.00, "maxDodge": 0.03 },
+      "Rare":      { "minHp": 25, "maxHp": 50,  "minAtk": 0.03, "maxAtk": 0.07, "minDodge": 0.03, "maxDodge": 0.06 },
+      "Epic":      { "minHp": 50, "maxHp": 90,  "minAtk": 0.07, "maxAtk": 0.12, "minDodge": 0.06, "maxDodge": 0.10 },
+      "Legendary": { "minHp": 90, "maxHp": 150, "minAtk": 0.12, "maxAtk": 0.20, "minDodge": 0.10, "maxDodge": 0.16 }
+    }
+  },
+  "vendingMachine": {
+    "baseHealth": 300,
+    "maxUpgradeLevel": 5,
+    "weaponRollCost": 20,
+    "armorRollCost": 20,
+    "tier2ChanceBase": 0.05,
+    "tier2ChancePerLevel": 0.08,
+    "legendaryChanceBase": 0.01,
+    "legendaryChancePerLevel": 0.02,
+    "epicChanceBase": 0.08,
+    "epicChancePerLevel": 0.05,
+    "rareChanceBase": 0.30,
+    "rareChancePerLevel": 0.05,
+    "upgradeGoldCosts": [150, 350, 700, 1300]
+  },
+  "wave": {
+    "scaleBase": 1.0,
+    "scalePerStage": 0.07,
+    "mobCountBase": 3,
+    "mobCountStageDivisor": 4,
+    "mobBaseHealth": 14,
+    "mobBaseDamage": 2.2,
+    "mobApsMin": 0.6,
+    "mobApsRandomRange": 0.3,
+    "mobGoldBase": 3,
+    "mobGoldStageDivisor": 2,
+    "midBossHealth": 220,
+    "midBossDamage": 10,
+    "midBossAps": 0.6,
+    "midBossGoldBase": 40,
+    "midBossGoldPerStage": 2,
+    "bigBossHealth": 600,
+    "bigBossDamage": 18,
+    "bigBossAps": 0.5,
+    "bigBossGoldBase": 120,
+    "bigBossGoldPerStage": 4
+  },
+  "metaProgression": {
+    "maxLevel": 5,
+    "levelCostBase": 20,
+    "levelCostPerLevel": 30,
+    "retireSpeedPerLevel": 0.15,
+    "firstRollTierBoostPerLevel": 0.10,
+    "baseHealthBonusPerLevel": 10
+  },
+  "currency": {
+    "weaponMarketValueTierBase": 10,
+    "armorMarketValues": { "Common": 15, "Rare": 40, "Epic": 90, "Legendary": 200 },
+    "sellRefundRatio": 0.5
+  },
+  "stageLoop": {
+    "maxStage": 30,
+    "victoryGoldBase": 30,
+    "victoryGoldPerStage": 5,
+    "victoryGemsDefault": 1,
+    "victoryGemsMilestone": 5,
+    "victoryGemsMilestoneInterval": 5,
+    "victorySoulsBase": 2,
+    "victorySoulsStageDivisor": 3
+  },
+  "character": {
+    "baseHealth": 70,
+    "retireDurationSeconds": 30
+  },
+  "combat": {
+    "elementAdvantageMultiplier": 1.5,
+    "elementDisadvantageMultiplier": 0.75
+  },
+  "mergeGrid": {
+    "totalCells": 16,
+    "cellsPerUnlock": 4,
+    "unlockGoldCosts": [100, 250, 500]
+  }
+}

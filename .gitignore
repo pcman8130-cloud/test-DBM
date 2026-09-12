@@ -37,11 +37,12 @@
 # Visual Studio cache directory
 .vs/
 
-# DungeonVM.* (.NET) build output
+# DungeonVM.* (.NET) build output — backend/DungeonVM.* (Unity와 무관한 C# 프로젝트, backend/ 참고)
 [Bb]in/
 [Oo]bj/
-DungeonVM.Simulator/bin/**/run_logs.jsonl
-DungeonVM.Simulator/bin/**/balance_suggestions.json
+backend/DungeonVM.Simulator/bin/**/run_logs.jsonl
+backend/DungeonVM.Simulator/bin/**/summary.json
+backend/DungeonVM.Simulator/bin/**/balance_suggestions.json
 
 # Gradle cache directory
 .gradle/
