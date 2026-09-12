@@ -10,23 +10,34 @@ UI 렌더링, 스프라이트, 연출은 이 프로젝트의 책임이 아닙니
 |---|---|
 | `Balance/` | BalanceData(밸런스 JSON 스키마), BalanceProvider(로딩/오버레이), DefaultBalance.json(임베디드 기본값) |
 | `Enums/` | WeaponType, ArmorType, ArmorRarity, ElementType, StagePhase, RowPosition, RunEndReason, CurrencyType |
-| `Models/` | Character(빈 껍데기 아바타), Weapon, Armor, Monster, Relic, Rune, VendingMachine, WeaponCatalog(무기 기초 스탯 테이블) |
-| `Combat/` | DamageCalculator(속성 상성), FormationManager(전열/후열 자동 배치), WaveEngine(웨이브 생성), BattleField(실시간 틱 시뮬레이션) |
-| `Inventory/` | MergeGrid(4x4 머지 보관함), InventoryManager(자동 머지 + 전투 중 동종 강화) |
-| `Systems/` | CurrencyManager(골드/보석/영혼), MetaProgression(영구 스킬트리), StageLoop(1~30 스테이지 오케스트레이션) |
+| `Models/` | Character(빈 껍데기 아바타), Weapon, Armor, Monster, Relic, Rune, VendingMachine, WeaponCatalog(무기 기초 스탯/레벨 곡선) |
+| `Combat/` | DamageCalculator(속성 상성), FormationManager(전열/후열 자동 배치), WaveEngine(웨이브 생성), BattleField(실시간 틱 시뮬레이션, 성서 힐 포함) |
+| `Inventory/` | MergeGrid(4x4, 무기+방어구 공유), InventoryManager(자동 머지 + 전투 중 동종 강화 + 룬 전용 보관함) |
+| `Systems/` | CurrencyManager(골드/영혼), MetaProgression(영구 스킬트리), StageLoop(1~30 스테이지 + 캐릭터 슬롯 해금 + 룬 드롭) |
 
 ## 핵심 개념
 
 - **캐릭터는 빈 껍데기**: [`Character`](Models/Character.cs)는 기본 스탯이 없고, 장착한 무기(사거리/데미지/공속)와
-  방어구(체력/공속 보너스/회피)가 모든 능력치를 결정합니다.
-- **무기는 머지로 승급**: 동일 `Type`+`Tier` 무기 2개를 합치면 `Tier+1`이 됩니다 ([`Weapon.MergeInto`](Models/Weapon.cs)).
-  전투 중에도 필드에서 사용 중인 무기와 같은 종류가 그리드에서 완성되면 즉시 드래그해 강화할 수 있습니다
-  ([`InventoryManager.TryFieldUpgrade`](Inventory/InventoryManager.cs)).
-- **방어구는 완제품**: 머지 없이 등급(Common~Legendary)별 랜덤 스탯으로 드롭/구매됩니다.
+  방어구(체력/공속 보너스/회피)가 모든 능력치를 결정합니다. 초기 2명, 골드로 최대 5명까지 슬롯을 해금합니다
+  ([`StageLoop.UnlockCharacterSlot`](Systems/StageLoop.cs)).
+- **무기는 1~15레벨 머지 승급**: 동일 `Type`+`Tier` 무기 2개를 합치면 `Tier+1`이 됩니다 ([`Weapon.MergeInto`](Models/Weapon.cs)).
+  10레벨이 실질적인 엔드스펙, 15레벨은 극단적으로 희귀한 하이롤로 설계된 완만한 성장 곡선을 씁니다
+  ([`WeaponCatalog.LevelMultiplierAt`](Models/WeaponCatalog.cs)). 레벨 5/10/15(무기 스킬 해금 마일스톤)에
+  도달하면 전투력 보너스가 근사적으로 가산됩니다(`SkillBonusAt`) — 성서(Bible)는 이 보너스가 파티 전체를
+  틱마다 회복시키는 실제 힐량으로 적용됩니다([`BattleField.Tick`](Combat/BattleField.cs)).
+  **머지 시 소켓된 룬은 종류 불문 항상 완전히 소멸**하며 해제할 수 없습니다 — 룬을 지키려면 그 레벨에서
+  머지를 멈춰야 하는 핵심 딜레마입니다.
+- **방어구도 그리드를 공유**: 방어구는 머지 없이 등급(Common~Legendary)별 랜덤 스탯으로 드롭/구매되지만, 무기
+  재료와 **같은 4x4 그리드 칸을 공유**해 공간 병목을 유발합니다([`MergeGrid`](Inventory/MergeGrid.cs)).
+- **룬은 전용 보관함**: 속성 룬은 구매 수단이 없고 일반/보스 스테이지 클리어 시 확률적으로 드롭됩니다
+  ([`StageLoop.CompleteStageVictory`](Systems/StageLoop.cs)). 획득한 룬은 그리드가 아닌 별도 보관함
+  ([`InventoryManager.RuneStorage`](Inventory/InventoryManager.cs))에 쌓이고, 필요할 때 무기에 소켓합니다
+  (`InventoryManager.TrySocketRune`).
 - **전투는 틱 기반**: [`BattleField.Tick(dt)`](Combat/BattleField.cs)를 반복 호출해 진행합니다. 몬스터는 전열 우선으로
-  캐릭터를 공격하고, 방어선이 없으면 자판기를 공격합니다. 동시 교전 가능 수는 `EngagementCap`(기본 3)으로 제한되어
-  웨이브 전체가 캐릭터 한 명에게 몰리지 않도록 근사했습니다.
-- **3중 재화**: 골드(일반 소모), 보석(룬/유물), 영혼(런 종료 후 정산되는 영구 메타 프로그레션).
+  캐릭터를 공격합니다(자판기는 체력이 없어 공격받지 않음). 동시 교전 가능 수는 `EngagementCap`(기본 3)으로 제한되어
+  웨이브 전체가 캐릭터 한 명에게 몰리지 않도록 근사했습니다. **패배 조건은 출격한 모험가 전원 전멸뿐**입니다.
+- **2중 재화**: 골드(뽑기/업그레이드/그리드 해금/캐릭터 슬롯), 영혼(런 종료 후 정산되는 영구 메타 프로그레션). 룬은
+  재화로 사는 게 아니라 스테이지/보스 드롭으로 획득합니다.
 
 ## 밸런스 수치 조정 위치
 
@@ -49,16 +60,18 @@ UI 렌더링, 스프라이트, 연출은 이 프로젝트의 책임이 아닙니
 
 | 항목 | 소비 클래스 |
 |---|---|
-| 무기별 기초 데미지/공속/체력/특수치, 티어당 성장 배율 | [`Models/WeaponCatalog.cs`](Models/WeaponCatalog.cs) |
+| 무기별 기초 데미지/공속/체력/특수치, 레벨별 성장 배율(1~15), 스킬 마일스톤(Lv.5/10/15) 보너스 | [`Models/WeaponCatalog.cs`](Models/WeaponCatalog.cs) |
 | 자판기 뽑기 확률(2티어 확률, 방어구 등급 확률), 업그레이드 비용 | [`Models/VendingMachine.cs`](Models/VendingMachine.cs) |
 | 방어구 등급별 랜덤 스탯 범위 | [`Models/Armor.cs`](Models/Armor.cs) |
-| 그리드 해금 비용 | [`Inventory/MergeGrid.cs`](Inventory/MergeGrid.cs) |
+| 그리드 해금 비용(무기+방어구 공유) | [`Inventory/MergeGrid.cs`](Inventory/MergeGrid.cs) |
+| 룬 드롭 확률(일반/보스 스테이지) | `Rune` 섹션 — [`Systems/StageLoop.cs`](Systems/StageLoop.cs)에서 소비 |
+| 캐릭터 시작/최대 인원, 슬롯 해금 골드 비용 | `CharacterSlots` 섹션 — [`Systems/StageLoop.cs`](Systems/StageLoop.cs)에서 소비 |
 | 몬스터 스케일링, 몹 수, 중간/대형 보스 스탯 | [`Combat/WaveEngine.cs`](Combat/WaveEngine.cs) |
 | 속성 상성 배율(순환/Holy↔Dark) | [`Combat/DamageCalculator.cs`](Combat/DamageCalculator.cs) |
 | 동시 교전 가능 수(EngagementCap, 밸런스 JSON 미포함 — 상수 유지) | [`Combat/BattleField.cs`](Combat/BattleField.cs) |
 | 장비 판매 시세/환급 비율 | [`Systems/CurrencyManager.cs`](Systems/CurrencyManager.cs) |
 | 영혼 스킬트리 비용/효과 | [`Systems/MetaProgression.cs`](Systems/MetaProgression.cs) |
-| 스테이지 클리어 보상(골드/보석/영혼) | [`Systems/StageLoop.cs`](Systems/StageLoop.cs) |
+| 스테이지 클리어 보상(골드/영혼) | [`Systems/StageLoop.cs`](Systems/StageLoop.cs) |
 | 캐릭터 기본 체력/리타이어 지속시간 | [`Models/Character.cs`](Models/Character.cs) |
 
 ## 빌드

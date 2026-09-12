@@ -36,10 +36,11 @@ public sealed class SupabaseLogger : IRunLogSink
             outcome = result.Outcome.ToString(),
             stages_cleared = result.StagesCleared,
             final_gold = result.FinalGold,
-            final_gems = result.FinalGems,
             final_souls = result.FinalSouls,
             final_weapons = result.FinalWeapons,
             final_armors = result.FinalArmors,
+            grid_bottleneck_sells = result.GridBottleneckSells,
+            rune_avoidance_skips = result.RuneAvoidanceSkips,
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);

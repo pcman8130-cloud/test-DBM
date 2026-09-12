@@ -28,14 +28,16 @@ public sealed class Weapon
 
     public bool CanMergeWith(Weapon other) => other.Type == Type && other.Tier == Tier && !IsMaxTier;
 
-    /// <summary>동종 무기 결합. 호출자가 두 원본 인스턴스를 그리드/슬롯에서 제거하고 반환된 새 무기로 교체해야 한다.</summary>
+    /// <summary>
+    /// 동종 무기 결합. 호출자가 두 원본 인스턴스를 그리드/슬롯에서 제거하고 반환된 새 무기로 교체해야 한다.
+    /// 핵심 딜레마 규칙: 머지 시 두 무기에 소켓된 룬은 종류를 불문하고 항상 완전히 소멸한다(해제 불가).
+    /// </summary>
     public Weapon MergeInto(Weapon other)
     {
         if (!CanMergeWith(other))
             throw new InvalidOperationException("동일 무기 종류/티어만 머지할 수 있습니다.");
 
-        var merged = new Weapon(Type, Tier + 1, Element != ElementType.None ? Element : other.Element);
-        return merged;
+        return new Weapon(Type, Tier + 1, ElementType.None);
     }
 
     public void SocketRune(ElementType element) => Element = element;

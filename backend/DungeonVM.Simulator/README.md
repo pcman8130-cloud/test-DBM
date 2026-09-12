@@ -1,7 +1,9 @@
 # DungeonVM.Simulator
 
 `DungeonVM.Core`를 참조하는 .NET 8 콘솔 헤드리스 시뮬레이터. 성향이 다른 가상 봇 3종을 각 1,000회(총 3,000회)
-완주시켜 무기 티어/방어구 등급 채택률을 집계하고, "왜 유저가 고티어 대신 2티어 무기에 안주하는가"를 데이터로 검증합니다.
+완주시켜 무기 레벨 분포/방어구 등급 채택률/그리드 병목/룬 보존 회피 빈도를 집계하고, "고레벨 무기가 강력함에도
+불구하고 왜 유저(봇)는 머지 그리드 병목·골드 해금 비용·소켓 룬 소멸 패널티로 인해 중간 레벨(5~10레벨)에
+안주하는가"를 데이터로 검증합니다.
 
 ## 실행
 
@@ -28,25 +30,34 @@ JSON 파일을 지정하면 그 값으로 덮어써서 실행됩니다. JSON은 
 dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -- 500 --balance my_balance.json
 ```
 
+추가 옵션:
+
+- `--summary <경로>`: `summary.json`을 빌드 출력 폴더 대신 지정한 경로에 저장 (외부 도구가 빌드 설정/TFM에
+  따라 달라지는 출력 경로를 추측하지 않아도 되게 함)
+- `--skip-llm`: LLM 밸런싱 모듈(네트워크 호출) 실행을 건너뜀 — 반복 실행 시 API 비용/지연을 피하고 싶을 때
+
 기획자가 엑셀로 밸런스를 조정해 이 JSON을 만드는 파이프라인은 [`tools/balance_pipeline`](../tools/balance_pipeline)를 참고하세요
-(`convert ... --simulate 500`으로 변환과 재시뮬레이션을 한 번에 실행할 수 있습니다).
+(`convert ... --simulate 500`으로 변환과 재시뮬레이션을 한 번에 실행할 수 있습니다). 슬라이더로 값을 조정하면서
+그래프가 바로 갱신되는 라이브 대시보드는 [`tools/balance_dashboard`](../tools/balance_dashboard)를 참고하세요.
 
 ## 봇 3종 ([`Bots/`](Bots))
 
 | 봇 | 전략 | 가설 |
 |---|---|---|
-| [`GreedyMergerBot`](Bots/GreedyMergerBot.cs) | 골드가 생기는 즉시 뽑기부터 소진, 업그레이드/해금 거의 안 함, 무기 종류 안 가리고 최고 티어로 계속 교체 | 골드가 항상 저티어 재뽑기에 흡수되어 동일 무기 스택이 안 쌓이고 2티어 근처에서 정체 |
-| [`SaverUpgraderBot`](Bots/SaverUpgraderBot.cs) | 자판기 업그레이드/그리드 해금을 최우선 저축, 무기 종류를 한 번 정하면 고수(타입 전환 없음) | 뽑기 확률 자체를 끌어올린 상태로 동종 스택을 안정적으로 쌓아 고티어 도달 빈도가 높음 |
-| [`BalancedOptimizerBot`](Bots/BalancedOptimizerBot.cs) | 초반엔 업그레이드 우선, 중후반엔 그리드 해금+뽑기 병행 | "이상적 유저" 벤치마크 |
+| [`SpaceExpansionBot`](Bots/SpaceExpansionBot.cs) | 골드를 그리드 해금에 최우선 투자, 룬 소멸을 개의치 않고 무조건 머지해 단일 무기를 최대한 높은 레벨로 밀어붙임("세로 성장") | 그리드는 넉넉해지지만 캐릭터 슬롯/방어구 투자가 밀려 파티 규모가 작게 유지됨 |
+| [`VendingRushBot`](Bots/VendingRushBot.cs) | 그리드 해금은 최소화, 자판기 업그레이드와 캐릭터 슬롯(최대 5명) 해금에 골드 집중("가로 확장") | 사람은 늘지만 그리드가 좁아 개개인의 무기는 낮은 레벨에 머묾, 그리드 병목 지표가 높게 나타남 |
+| [`MidTierCampBot`](Bots/MidTierCampBot.cs) | 룬이 소켓된 무기가 5~7레벨 구간이면 머지를 의도적으로 건너뛰어 룬을 보존, 방어구/룬 구매에 집중 | 룬 소멸 페널티 때문에 스스로 성장을 멈추는 "안주" 행동을 룬 회피 지표로 직접 관측 |
 
 새 봇을 추가하려면 [`IBot`](Bots/IBot.cs)을 구현하고 [`Program.cs`](Program.cs)의 `bots` 배열에 등록하면 됩니다.
-[`BotContext`](Bots/BotContext.cs)가 뽑기/머지/업그레이드/장착 등 봇이 쓸 수 있는 행동을 제공합니다.
+[`BotContext`](Bots/BotContext.cs)가 뽑기/머지(룬 보존 조건부 스킵 포함)/업그레이드/캐릭터 슬롯 해금/룬 구매·소켓/
+무기·방어구 장착 등 봇이 쓸 수 있는 행동을 제공합니다.
 
 ## 출력물
 
-1. **콘솔 리포트**: 봇별 승률/평균 도달 스테이지/종료 사유, 무기 티어별·방어구 등급별 채택률, LLM 밸런싱 모듈 감지 결과
-2. **`bin/<Config>/net8.0/run_logs.jsonl`**: 런 1건당 1줄 JSON(`RunResult`) — 항상 기록됨
-3. **`bin/<Config>/net8.0/summary.json`**: 콘솔 리포트와 동일한 집계(승률/평균 스테이지/채택률)를 담은 요약 JSON —
+1. **콘솔 리포트**: 봇별 승률/평균 도달 스테이지/종료 사유/그리드 병목 강제판매/룬 보존 회피 횟수, 무기 레벨 구간
+   분포(1-4/5-9/10-14/15)·방어구 등급별 채택률, LLM 밸런싱 모듈 감지 결과
+2. **`bin/<Config>/net8.0/run_logs.jsonl`**: 런 1건당 1줄 JSON(`RunResult`, `GridBottleneckSells`·`RuneAvoidanceSkips` 포함) — 항상 기록됨
+3. **`bin/<Config>/net8.0/summary.json`**: 콘솔 리포트와 동일한 집계(승률/평균 스테이지/레벨 구간 분포/채택률)를 담은 요약 JSON —
    대시보드 등 외부 도구가 콘솔 출력을 파싱하지 않고 이 파일만 읽으면 되도록 함
 4. **`bin/<Config>/net8.0/balance_suggestions.json`**: LLM이 제안한 밸런스 조정안(API 키가 설정된 경우에만 생성)
 
@@ -68,10 +79,11 @@ create table run_logs (
   outcome text,
   stages_cleared int,
   final_gold int,
-  final_gems int,
   final_souls int,
   final_weapons text[],
   final_armors text[],
+  grid_bottleneck_sells int,
+  rune_avoidance_skips int,
   created_at timestamptz default now()
 );
 ```

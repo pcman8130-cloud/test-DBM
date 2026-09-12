@@ -14,7 +14,8 @@ namespace DungeonVM.Simulator;
 
 /// <summary>
 /// 던전 자판기 헤드리스 배치 시뮬레이터. 성향이 다른 가상 봇 3종을 각 1,000회(총 3,000회) 완주시켜
-/// "왜 유저가 고티어 대신 2티어 무기에 안주하는가"를 무기 티어 채택률로 검증한다.
+/// "고레벨 무기의 DPS/스킬이 강력함에도 불구하고, 왜 유저(봇)는 머지 그리드 병목·골드 해금 비용·
+/// 소켓 룬 소멸 패널티로 인해 중간 레벨(5~10레벨)에 안주하는가"를 레벨 분포/그리드 병목/룬 회피 지표로 검증한다.
 /// --balance &lt;path&gt; (또는 DUNGEONVM_BALANCE_JSON 환경변수)로 밸런스 JSON을 덮어써서
 /// 엑셀→JSON 파이프라인 산출물이나 대시보드가 조정한 값으로 재시뮬레이션할 수 있다.
 /// </summary>
@@ -26,19 +27,21 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
-        var (runsPerBot, balancePath) = ParseArgs(args);
+        var parsed = ParseArgs(args);
 
-        if (balancePath is not null)
+        if (parsed.BalancePath is not null)
         {
-            BalanceProvider.LoadFromFile(balancePath);
-            Console.WriteLine($"밸런스 오버라이드 로드: {balancePath}");
+            BalanceProvider.LoadFromFile(parsed.BalancePath);
+            Console.WriteLine($"밸런스 오버라이드 로드: {parsed.BalancePath}");
         }
         else
         {
             Console.WriteLine("밸런스: DungeonVM.Core 기본값(임베디드 DefaultBalance.json) 사용");
         }
 
-        IBot[] bots = { new GreedyMergerBot(), new SaverUpgraderBot(), new BalancedOptimizerBot() };
+        int runsPerBot = parsed.RunsPerBot;
+
+        IBot[] bots = { new SpaceExpansionBot(), new VendingRushBot(), new MidTierCampBot() };
         var metaByBot = bots.ToDictionary(b => b.Name, _ => new MetaProgression());
         var metricsByBot = bots.ToDictionary(b => b.Name, _ => new WeaponTierMetrics());
         var collector = new RunLogCollector();
@@ -83,34 +86,55 @@ internal static class Program
         Console.WriteLine($"\n총 {totalRuns}회 실행 완료 ({sw.Elapsed.TotalSeconds:F1}s)\n");
 
         PrintReport(bots, collector, metricsByBot);
-        WriteSummaryJson(bots, collector, metricsByBot);
-        await RunLlmBalancingAsync(metricsByBot);
+        WriteSummaryJson(bots, collector, metricsByBot, parsed.SummaryPath);
+
+        if (!parsed.SkipLlm)
+            await RunLlmBalancingAsync(metricsByBot);
 
         return 0;
     }
 
-    /// <summary>"[숫자] [--balance &lt;path&gt;]" 형태를 파싱한다. --balance가 없으면 DUNGEONVM_BALANCE_JSON 환경변수를 확인한다.</summary>
-    private static (int RunsPerBot, string? BalancePath) ParseArgs(string[] args)
+    private sealed record ParsedArgs(int RunsPerBot, string? BalancePath, string? SummaryPath, bool SkipLlm);
+
+    /// <summary>
+    /// "[숫자] [--balance &lt;path&gt;] [--summary &lt;path&gt;] [--skip-llm]" 형태를 파싱한다.
+    /// --balance가 없으면 DUNGEONVM_BALANCE_JSON 환경변수를 확인한다.
+    /// --summary는 summary.json을 저장할 경로를 직접 지정한다(대시보드 등이 빌드 출력 폴더 경로를 추측하지 않아도 되게).
+    /// --skip-llm은 LLM 밸런싱 모듈(네트워크 호출) 실행을 건너뛴다(대시보드처럼 반복 실행 시 API 비용/지연을 피하기 위함).
+    /// </summary>
+    private static ParsedArgs ParseArgs(string[] args)
     {
         int runsPerBot = 1000;
         string? balancePath = null;
+        string? summaryPath = null;
+        bool skipLlm = false;
         var positional = new List<string>();
 
         for (int i = 0; i < args.Length; i++)
         {
-            if (args[i] == "--balance")
+            switch (args[i])
             {
-                if (i + 1 >= args.Length)
-                    throw new ArgumentException("--balance 옵션 뒤에는 JSON 파일 경로가 와야 합니다.");
-                balancePath = args[++i];
-            }
-            else if (args[i].StartsWith("--balance=", StringComparison.Ordinal))
-            {
-                balancePath = args[i]["--balance=".Length..];
-            }
-            else
-            {
-                positional.Add(args[i]);
+                case "--balance":
+                    if (i + 1 >= args.Length)
+                        throw new ArgumentException("--balance 옵션 뒤에는 JSON 파일 경로가 와야 합니다.");
+                    balancePath = args[++i];
+                    break;
+                case "--summary":
+                    if (i + 1 >= args.Length)
+                        throw new ArgumentException("--summary 옵션 뒤에는 저장할 JSON 파일 경로가 와야 합니다.");
+                    summaryPath = args[++i];
+                    break;
+                case "--skip-llm":
+                    skipLlm = true;
+                    break;
+                default:
+                    if (args[i].StartsWith("--balance=", StringComparison.Ordinal))
+                        balancePath = args[i]["--balance=".Length..];
+                    else if (args[i].StartsWith("--summary=", StringComparison.Ordinal))
+                        summaryPath = args[i]["--summary=".Length..];
+                    else
+                        positional.Add(args[i]);
+                    break;
             }
         }
 
@@ -118,18 +142,17 @@ internal static class Program
             runsPerBot = n;
 
         balancePath ??= Environment.GetEnvironmentVariable("DUNGEONVM_BALANCE_JSON");
-        return (runsPerBot, balancePath);
+        return new ParsedArgs(runsPerBot, balancePath, summaryPath, skipLlm);
     }
 
     private static RunResult SimulateOneRun(IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics)
     {
         var currency = new CurrencyManager();
         var inventory = new InventoryManager();
-        var party = new List<Character>
-        {
-            new("Hero1", meta.BaseHealthBonus),
-            new("Hero2", meta.BaseHealthBonus),
-        };
+        int startingSlots = BalanceProvider.Current.CharacterSlots.StartingSlots;
+        var party = Enumerable.Range(1, startingSlots)
+            .Select(i => new Character($"Hero{i}", meta.BaseHealthBonus))
+            .ToList();
         var stageLoop = new StageLoop(currency, inventory, party);
         var ctx = new BotContext(stageLoop, rng, meta);
 
@@ -143,7 +166,7 @@ internal static class Program
             bot.OnMaintenancePhase(ctx);
 
             var monsters = stageLoop.BeginStageCombat(rng);
-            var battle = new BattleField(party, monsters, stageLoop.Machine, rng);
+            var battle = new BattleField(party, monsters, rng);
 
             var outcome = RunEndReason.InProgress;
             double elapsed = 0;
@@ -157,7 +180,7 @@ internal static class Program
 
             if (outcome == RunEndReason.Victory)
             {
-                stageLoop.CompleteStageVictory();
+                stageLoop.CompleteStageVictory(rng);
                 continue;
             }
 
@@ -165,15 +188,15 @@ internal static class Program
             if (outcome == RunEndReason.InProgress)
                 outcome = RunEndReason.PartyWiped;
 
-            return FinishRun(bot, runIndex, outcome, stageLoop, currency, meta, metrics);
+            return FinishRun(bot, runIndex, outcome, stageLoop, currency, meta, metrics, ctx);
         }
 
-        return FinishRun(bot, runIndex, RunEndReason.Victory, stageLoop, currency, meta, metrics);
+        return FinishRun(bot, runIndex, RunEndReason.Victory, stageLoop, currency, meta, metrics, ctx);
     }
 
     private static RunResult FinishRun(
         IBot bot, int runIndex, RunEndReason outcome, StageLoop stageLoop,
-        CurrencyManager currency, MetaProgression meta, WeaponTierMetrics metrics)
+        CurrencyManager currency, MetaProgression meta, WeaponTierMetrics metrics, BotContext ctx)
     {
         meta.BankSouls(stageLoop.SoulsEarnedThisRun);
         metrics.RecordFinalEquip(stageLoop.Party);
@@ -190,7 +213,9 @@ internal static class Program
             .Select(c => $"{c.EquippedArmor!.Type}_{c.EquippedArmor!.Rarity}")
             .ToList();
 
-        return new RunResult(bot.Name, runIndex, outcome, stagesCleared, currency.Gold, currency.Gems, currency.Souls, weapons, armors);
+        return new RunResult(
+            bot.Name, runIndex, outcome, stagesCleared, currency.Gold, currency.Souls,
+            weapons, armors, ctx.GridBottleneckSells, ctx.RuneAvoidanceSkips);
     }
 
     private static void InvestMetaSouls(MetaProgression meta)
@@ -214,9 +239,15 @@ internal static class Program
             Console.WriteLine($"  승률(30스테이지 완주): {collector.WinRate(bot.Name):P1}");
             Console.WriteLine($"  평균 도달 스테이지: {collector.AverageStagesCleared(bot.Name):F1} / {StageLoop.MaxStage}");
             Console.WriteLine($"  평균 최종 골드: {collector.AverageFinalGold(bot.Name):F0}");
+            Console.WriteLine($"  평균 그리드 병목 강제판매: {collector.AverageGridBottleneckSells(bot.Name):F1}회/런");
+            Console.WriteLine($"  평균 룬 보존 위한 머지 회피: {collector.AverageRuneAvoidanceSkips(bot.Name):F1}회/런");
 
             foreach (var (reason, count) in collector.OutcomeBreakdown(bot.Name))
                 Console.WriteLine($"  종료 사유 {reason}: {count}건");
+
+            Console.WriteLine("  레벨 구간 분포(런 종료 시점 장착 무기 기준):");
+            foreach (var (bucket, rate) in collector.LevelBucketDistribution(bot.Name))
+                Console.WriteLine($"    Lv.{bucket}: {rate:P1}");
 
             Console.WriteLine();
         }
@@ -262,7 +293,7 @@ internal static class Program
     /// 콘솔 리포트와 동일한 수치를 summary.json으로 저장한다. 실시간 대시보드(B)가 콘솔 출력을 파싱하지 않고
     /// 이 파일 하나만 읽어서 밸런스 파라미터 변경 → 재시뮬레이션 → 그래프 갱신 루프를 구성할 수 있게 하기 위함.
     /// </summary>
-    private static void WriteSummaryJson(IBot[] bots, RunLogCollector collector, Dictionary<string, WeaponTierMetrics> metricsByBot)
+    private static void WriteSummaryJson(IBot[] bots, RunLogCollector collector, Dictionary<string, WeaponTierMetrics> metricsByBot, string? summaryPath)
     {
         var botSummaries = bots.Select(bot =>
         {
@@ -288,6 +319,9 @@ internal static class Program
                 winRate = collector.WinRate(bot.Name),
                 averageStagesCleared = collector.AverageStagesCleared(bot.Name),
                 averageFinalGold = collector.AverageFinalGold(bot.Name),
+                averageGridBottleneckSells = collector.AverageGridBottleneckSells(bot.Name),
+                averageRuneAvoidanceSkips = collector.AverageRuneAvoidanceSkips(bot.Name),
+                levelBucketDistribution = collector.LevelBucketDistribution(bot.Name),
                 outcomeBreakdown = collector.OutcomeBreakdown(bot.Name).ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 weaponAdoption,
                 armorAdoption,
@@ -301,7 +335,8 @@ internal static class Program
             bots = botSummaries,
         };
 
-        string path = Path.Combine(AppContext.BaseDirectory, "summary.json");
+        string path = summaryPath ?? Path.Combine(AppContext.BaseDirectory, "summary.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         File.WriteAllText(path, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"요약 결과를 {path}에 저장했습니다.\n");
     }

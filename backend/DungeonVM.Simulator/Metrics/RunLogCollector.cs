@@ -28,6 +28,43 @@ public sealed class RunLogCollector
         return subset.Count == 0 ? 0 : subset.Average(r => r.FinalGold);
     }
 
+    public double AverageGridBottleneckSells(string? botName = null)
+    {
+        var subset = Filter(botName);
+        return subset.Count == 0 ? 0 : subset.Average(r => r.GridBottleneckSells);
+    }
+
+    public double AverageRuneAvoidanceSkips(string? botName = null)
+    {
+        var subset = Filter(botName);
+        return subset.Count == 0 ? 0 : subset.Average(r => r.RuneAvoidanceSkips);
+    }
+
+    /// <summary>런 종료 시점 무기 레벨을 5/10/15 구간으로 나눠 표본 대비 비율을 낸다 (도달률이 아닌 "정체 지점" 스냅샷).</summary>
+    public IReadOnlyDictionary<string, double> LevelBucketDistribution(string? botName = null)
+    {
+        var weapons = Filter(botName).SelectMany(r => r.FinalWeapons).ToList();
+        if (weapons.Count == 0) return new Dictionary<string, double>();
+
+        var buckets = new Dictionary<string, int> { ["1-4"] = 0, ["5-9"] = 0, ["10-14"] = 0, ["15"] = 0 };
+        foreach (var w in weapons)
+        {
+            int tIndex = w.LastIndexOf('T');
+            if (tIndex < 0 || !int.TryParse(w[(tIndex + 1)..], out int tier)) continue;
+
+            string bucket = tier switch
+            {
+                < 5 => "1-4",
+                < 10 => "5-9",
+                < 15 => "10-14",
+                _ => "15",
+            };
+            buckets[bucket]++;
+        }
+
+        return buckets.ToDictionary(kv => kv.Key, kv => kv.Value / (double)weapons.Count);
+    }
+
     public IReadOnlyDictionary<Core.Enums.RunEndReason, int> OutcomeBreakdown(string? botName = null)
     {
         var counts = new Dictionary<Core.Enums.RunEndReason, int>();

@@ -4,13 +4,12 @@ using DungeonVM.Core.Models;
 
 namespace DungeonVM.Core.Systems;
 
-/// <summary>3중 재화(Gold/Gems/Souls)의 획득·소비를 관장한다.</summary>
+/// <summary>2중 재화(Gold/Souls)의 획득·소비를 관장한다. 룬은 구매가 아닌 스테이지/보스 드롭으로만 획득한다.</summary>
 public sealed class CurrencyManager
 {
     private static CurrencyBalanceSection Config => BalanceProvider.Current.Currency;
 
     public int Gold { get; private set; }
-    public int Gems { get; private set; }
     public int Souls { get; private set; }
 
     public void Add(CurrencyType type, int amount)
@@ -18,7 +17,6 @@ public sealed class CurrencyManager
         switch (type)
         {
             case CurrencyType.Gold: Gold += amount; break;
-            case CurrencyType.Gems: Gems += amount; break;
             case CurrencyType.Souls: Souls += amount; break;
         }
     }
@@ -28,13 +26,12 @@ public sealed class CurrencyManager
         switch (type)
         {
             case CurrencyType.Gold when Gold >= amount: Gold -= amount; return true;
-            case CurrencyType.Gems when Gems >= amount: Gems -= amount; return true;
             case CurrencyType.Souls when Souls >= amount: Souls -= amount; return true;
             default: return false;
         }
     }
 
-    public static int WeaponMarketValue(Weapon w) => Config.WeaponMarketValueTierBase * (1 << (w.Tier - 1));
+    public static int WeaponMarketValue(Weapon w) => (int)(Config.WeaponMarketValueTierBase * WeaponCatalog.LevelMultiplierAt(w.Tier));
 
     public static int ArmorMarketValue(Armor a)
         => Config.ArmorMarketValues.TryGetValue(a.Rarity.ToString(), out var value) ? value : 0;

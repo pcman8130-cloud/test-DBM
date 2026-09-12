@@ -17,6 +17,8 @@ public sealed class BalanceData
     public CharacterBalanceSection Character { get; set; } = new();
     public CombatBalanceSection Combat { get; set; } = new();
     public MergeGridBalanceSection MergeGrid { get; set; } = new();
+    public RuneBalanceSection Rune { get; set; } = new();
+    public CharacterSlotBalanceSection CharacterSlots { get; set; } = new();
 }
 
 public sealed class WeaponStatEntry
@@ -30,8 +32,17 @@ public sealed class WeaponStatEntry
 
 public sealed class WeaponBalanceSection
 {
-    public double TierDamageMultiplier { get; set; } = 1.6;
-    public int MaxTier { get; set; } = 5;
+    public int MaxTier { get; set; } = 15;
+
+    /// <summary>레벨 1~MaxTier의 데미지/힐 배율(1레벨=1.0 기준). 길이는 MaxTier와 같아야 한다.
+    /// 10레벨을 "실질적 엔드스펙", 15레벨을 "극단적 하이롤"로 삼는 완만한 곡선.</summary>
+    public List<double> LevelMultipliers { get; set; } = new();
+
+    /// <summary>레벨 5/10/15(무기 스킬 해금 마일스톤) 도달 시 가산되는 전투력 보너스(근사 스킬 반영, 스택 누적).</summary>
+    public double SkillBonusAtLevel5 { get; set; }
+    public double SkillBonusAtLevel10 { get; set; }
+    public double SkillBonusAtLevel15 { get; set; }
+
     public Dictionary<string, WeaponStatEntry> Table { get; set; } = new();
 }
 
@@ -53,7 +64,6 @@ public sealed class ArmorBalanceSection
 
 public sealed class VendingMachineBalanceSection
 {
-    public double BaseHealth { get; set; }
     public int MaxUpgradeLevel { get; set; }
     public int WeaponRollCost { get; set; }
     public int ArmorRollCost { get; set; }
@@ -114,9 +124,6 @@ public sealed class StageLoopBalanceSection
     public int MaxStage { get; set; }
     public int VictoryGoldBase { get; set; }
     public int VictoryGoldPerStage { get; set; }
-    public int VictoryGemsDefault { get; set; }
-    public int VictoryGemsMilestone { get; set; }
-    public int VictoryGemsMilestoneInterval { get; set; }
     public int VictorySoulsBase { get; set; }
     public int VictorySoulsStageDivisor { get; set; }
 }
@@ -137,5 +144,23 @@ public sealed class MergeGridBalanceSection
 {
     public int TotalCells { get; set; }
     public int CellsPerUnlock { get; set; }
+    public List<int> UnlockGoldCosts { get; set; } = new();
+}
+
+public sealed class RuneBalanceSection
+{
+    /// <summary>일반 스테이지 클리어 시 룬이 드롭될 확률.</summary>
+    public double NormalStageDropChance { get; set; }
+
+    /// <summary>중간/대형 보스 스테이지 클리어 시 룬이 드롭될 확률.</summary>
+    public double BossStageDropChance { get; set; }
+}
+
+public sealed class CharacterSlotBalanceSection
+{
+    public int StartingSlots { get; set; } = 2;
+    public int MaxSlots { get; set; } = 5;
+
+    /// <summary>3번째~MaxSlots번째 슬롯 해금 골드 비용 (길이 = MaxSlots - StartingSlots).</summary>
     public List<int> UnlockGoldCosts { get; set; } = new();
 }

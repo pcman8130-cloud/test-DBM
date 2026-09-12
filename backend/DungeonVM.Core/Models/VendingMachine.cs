@@ -3,30 +3,19 @@ using DungeonVM.Core.Enums;
 
 namespace DungeonVM.Core.Models;
 
-/// <summary>체력만 보유한 방어 목표물이자 공격/방어 뽑기 UI의 실체. 업그레이드할수록 고티어/고등급 확률이 오른다.</summary>
+/// <summary>공격/방어 뽑기 UI의 실체. 체력이 없어 공격받지 않으며, 업그레이드할수록 고티어/고등급 확률이 오른다.
+/// 패배 조건은 오직 출격한 모험가 전원 전멸뿐이다.</summary>
 public sealed class VendingMachine
 {
     private static VendingMachineBalanceSection Config => BalanceProvider.Current.VendingMachine;
 
     public static int MaxUpgradeLevel => Config.MaxUpgradeLevel;
 
-    public double MaxHealth { get; private set; }
-    public double CurrentHealth { get; private set; }
     public int AttackUpgradeLevel { get; private set; } = 1;
     public int DefenseUpgradeLevel { get; private set; } = 1;
 
     private static readonly WeaponType[] AllWeaponTypes = (WeaponType[])Enum.GetValues(typeof(WeaponType));
     private static readonly ArmorType[] AllArmorTypes = (ArmorType[])Enum.GetValues(typeof(ArmorType));
-
-    public VendingMachine()
-    {
-        MaxHealth = Config.BaseHealth;
-        CurrentHealth = MaxHealth;
-    }
-
-    public bool IsDestroyed => CurrentHealth <= 0;
-
-    public void TakeDamage(double amount) => CurrentHealth = Math.Max(0, CurrentHealth - amount);
 
     /// <summary>MetaProgression.FirstRollTierBoostChance 판정 성공 시 다음 1회 뽑기를 2티어로 확정한다.</summary>
     public bool NextRollGuaranteedTier2 { get; set; }

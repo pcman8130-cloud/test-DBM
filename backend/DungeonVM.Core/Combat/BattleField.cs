@@ -14,7 +14,6 @@ public sealed class BattleField
 
     private readonly IReadOnlyList<Character> _party;
     private readonly List<Monster> _monsters;
-    private readonly VendingMachine _machine;
     private readonly Random _rng;
 
     private readonly Dictionary<Guid, double> _characterCooldowns = new();
@@ -22,11 +21,10 @@ public sealed class BattleField
 
     public double ElapsedSeconds { get; private set; }
 
-    public BattleField(IReadOnlyList<Character> party, List<Monster> monsters, VendingMachine machine, Random rng)
+    public BattleField(IReadOnlyList<Character> party, List<Monster> monsters, Random rng)
     {
         _party = party;
         _monsters = monsters;
-        _machine = machine;
         _rng = rng;
 
         foreach (var c in _party) _characterCooldowns[c.Id] = 0;
@@ -41,6 +39,19 @@ public sealed class BattleField
     public RunEndReason Tick(double dt, double retireSpeedMultiplier = 1.0)
     {
         ElapsedSeconds += dt;
+
+        // 0) 성서(Bible) 장착 캐릭터는 매 틱 파티 전체를 회복시킨다(레벨 5/10/15 스킬 마일스톤이 힐량에 근사 반영됨).
+        foreach (var healer in _party)
+        {
+            if (!healer.IsAlive) continue;
+            if (healer.EquippedWeapon is not { Type: WeaponType.Bible } bible) continue;
+
+            double healPerSecond = WeaponCatalog.HealPerSecondAtTier(bible.Type, bible.Tier);
+            if (healPerSecond <= 0) continue;
+
+            foreach (var ally in _party)
+                ally.Heal(healPerSecond * dt);
+        }
 
         // 1) 파티가 몬스터를 공격 (전열/후열 관계없이 전원이 focus target을 타격)
         foreach (var c in _party)
@@ -64,12 +75,14 @@ public sealed class BattleField
         if (WaveCleared)
             return RunEndReason.Victory;
 
-        // 2) 몬스터가 전열 우선으로 캐릭터를, 방어선이 없으면 자판기를 공격.
+        // 2) 몬스터가 전열 우선으로 캐릭터를 공격한다(자판기는 체력이 없어 공격받지 않음).
         // 동시 교전 가능 수를 EngagementCap으로 제한해 "전열 병목"을 표현한다(웨이브 전체가 한 캐릭터에 몰리지 않도록).
         var monsterTarget = FormationManager.SelectMonsterTarget(_party);
         var activeAttackers = _monsters.Where(m => m.IsAlive).Take(EngagementCap);
         foreach (var m in activeAttackers)
         {
+            if (monsterTarget is null) break; // 방어선이 없다 = 이미 전멸, 계산할 대상이 없다.
+
             _monsterCooldowns[m.Id] += dt;
             double interval = m.AttacksPerSecond > 0 ? 1.0 / m.AttacksPerSecond : double.MaxValue;
 
@@ -77,15 +90,8 @@ public sealed class BattleField
             {
                 _monsterCooldowns[m.Id] -= interval;
 
-                if (monsterTarget is not null)
-                {
-                    bool dodged = _rng.NextDouble() < monsterTarget.DodgeChance;
-                    if (!dodged) monsterTarget.TakeDamage(m.Damage);
-                }
-                else
-                {
-                    _machine.TakeDamage(m.Damage);
-                }
+                bool dodged = _rng.NextDouble() < monsterTarget.DodgeChance;
+                if (!dodged) monsterTarget.TakeDamage(m.Damage);
             }
         }
 
@@ -93,9 +99,7 @@ public sealed class BattleField
         foreach (var c in _party)
             c.AdvanceRetireTimer(dt, retireSpeedMultiplier);
 
-        if (_machine.IsDestroyed)
-            return RunEndReason.VendingMachineDestroyed;
-
+        // 패배 조건은 출격한 모험가 전원이 동시에 전멸(리타이어)하는 경우뿐이다.
         if (FormationManager.PartyWiped(_party))
             return RunEndReason.PartyWiped;
 

@@ -1,14 +1,17 @@
 {
   "weapons": {
-    "tierDamageMultiplier": 1.6,
-    "maxTier": 5,
+    "maxTier": 15,
+    "levelMultipliers": [1.00, 1.35, 1.75, 2.15, 2.55, 2.95, 3.35, 3.75, 4.15, 4.60, 5.30, 6.10, 7.10, 8.30, 10.00],
+    "skillBonusAtLevel5": 0.15,
+    "skillBonusAtLevel10": 0.35,
+    "skillBonusAtLevel15": 0.65,
     "table": {
       "Sword":  { "row": "Front", "baseDamage": 12, "attacksPerSecond": 1.2, "bonusHealth": 20, "pullAggro": 0 },
       "Shield": { "row": "Front", "baseDamage": 5,  "attacksPerSecond": 0.8, "bonusHealth": 60, "pullAggro": 1.0 },
       "Dagger": { "row": "Front", "baseDamage": 7,  "attacksPerSecond": 2.2, "bonusHealth": 10, "pullAggro": 0 },
       "Bow":    { "row": "Back",  "baseDamage": 10, "attacksPerSecond": 1.4, "bonusHealth": 8,  "pullAggro": 0 },
       "Staff":  { "row": "Back",  "baseDamage": 9,  "attacksPerSecond": 0.9, "bonusHealth": 8,  "pullAggro": 0 },
-      "Bible":  { "row": "Back",  "baseDamage": 4,  "attacksPerSecond": 1.0, "bonusHealth": 8,  "pullAggro": 0 }
+      "Bible":  { "row": "Back",  "baseDamage": 4,  "attacksPerSecond": 1.0, "bonusHealth": 8,  "pullAggro": 3.0 }
     }
   },
   "armor": {
@@ -21,10 +24,9 @@
     }
   },
   "vendingMachine": {
-    "baseHealth": 300,
     "maxUpgradeLevel": 5,
-    "weaponRollCost": 20,
-    "armorRollCost": 20,
+    "weaponRollCost": 10,
+    "armorRollCost": 10,
     "tier2ChanceBase": 0.05,
     "tier2ChancePerLevel": 0.08,
     "legendaryChanceBase": 0.01,
@@ -37,11 +39,11 @@
   },
   "wave": {
     "scaleBase": 1.0,
-    "scalePerStage": 0.07,
+    "scalePerStage": 0.035,
     "mobCountBase": 3,
     "mobCountStageDivisor": 4,
-    "mobBaseHealth": 14,
-    "mobBaseDamage": 2.2,
+    "mobBaseHealth": 12,
+    "mobBaseDamage": 1.5,
     "mobApsMin": 0.6,
     "mobApsRandomRange": 0.3,
     "mobGoldBase": 3,
@@ -72,16 +74,13 @@
   },
   "stageLoop": {
     "maxStage": 30,
-    "victoryGoldBase": 30,
-    "victoryGoldPerStage": 5,
-    "victoryGemsDefault": 1,
-    "victoryGemsMilestone": 5,
-    "victoryGemsMilestoneInterval": 5,
+    "victoryGoldBase": 40,
+    "victoryGoldPerStage": 8,
     "victorySoulsBase": 2,
     "victorySoulsStageDivisor": 3
   },
   "character": {
-    "baseHealth": 70,
+    "baseHealth": 90,
     "retireDurationSeconds": 30
   },
   "combat": {
@@ -92,5 +91,14 @@
     "totalCells": 16,
     "cellsPerUnlock": 4,
     "unlockGoldCosts": [100, 250, 500]
+  },
+  "rune": {
+    "normalStageDropChance": 0.08,
+    "bossStageDropChance": 0.6
+  },
+  "characterSlots": {
+    "startingSlots": 2,
+    "maxSlots": 5,
+    "unlockGoldCosts": [300, 700, 1400, 3000]
   }
 }

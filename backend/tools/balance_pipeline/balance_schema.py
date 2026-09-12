@@ -5,7 +5,7 @@ DungeonVM.Core/Balance/BalanceData.cs 의 필드와 1:1로 대응한다.
 C# 쪽 클래스에 필드를 추가/삭제하면 이 파일도 함께 갱신해야 한다.
 
 - SCALAR_FIELDS: 엑셀의 "Scalars" 시트(Key/Value 두 컬럼)에 대응하는 단일 값 필드 전체 목록.
-  Key는 "섹션.필드명" 형태의 점(dot) 표기법을 쓴다 (예: "VendingMachine.BaseHealth").
+  Key는 "섹션.필드명" 형태의 점(dot) 표기법을 쓴다 (예: "VendingMachine.WeaponRollCost").
 - TABLE_SHEETS: 무기별/등급별처럼 행이 여러 개인 값들은 전용 시트로 분리한다.
 """
 
@@ -32,12 +32,13 @@ class ScalarField:
 
 # 순서는 DefaultBalance.json / BalanceData.cs의 섹션 순서를 그대로 따른다.
 SCALAR_FIELDS: list[ScalarField] = [
-    ScalarField("Weapons", "TierDamageMultiplier", float, "머지 1회(동일 무기 2개 결합)당 데미지 성장 배율"),
-    ScalarField("Weapons", "MaxTier", int, "무기 최대 티어"),
+    ScalarField("Weapons", "MaxTier", int, "무기 최대 레벨(현재 15: 10레벨이 실질 엔드스펙, 15레벨은 극단적 하이롤)"),
+    ScalarField("Weapons", "SkillBonusAtLevel5", float, "무기 스킬 마일스톤 Lv.5 도달 시 가산 전투력 보너스(근사 스킬 반영)"),
+    ScalarField("Weapons", "SkillBonusAtLevel10", float, "무기 스킬 마일스톤 Lv.10 도달 시 가산 전투력 보너스(스택 누적)"),
+    ScalarField("Weapons", "SkillBonusAtLevel15", float, "무기 스킬 마일스톤 Lv.15 도달 시 가산 전투력 보너스(스택 누적)"),
 
     ScalarField("Armor", "DodgeClampMax", float, "회피율 상한(0~1)"),
 
-    ScalarField("VendingMachine", "BaseHealth", float, "자판기 기본 체력"),
     ScalarField("VendingMachine", "MaxUpgradeLevel", int, "공격/방어 업그레이드 최대 레벨"),
     ScalarField("VendingMachine", "WeaponRollCost", int, "무기 뽑기 1회 골드 비용"),
     ScalarField("VendingMachine", "ArmorRollCost", int, "방어구 뽑기 1회 골드 비용"),
@@ -84,9 +85,6 @@ SCALAR_FIELDS: list[ScalarField] = [
     ScalarField("StageLoop", "MaxStage", int, "런 클리어 목표 스테이지 수"),
     ScalarField("StageLoop", "VictoryGoldBase", int, "스테이지 클리어 골드 보상 기본값"),
     ScalarField("StageLoop", "VictoryGoldPerStage", int, "골드 보상 스테이지당 증가량"),
-    ScalarField("StageLoop", "VictoryGemsDefault", int, "평시 스테이지 클리어 보석 보상"),
-    ScalarField("StageLoop", "VictoryGemsMilestone", int, "마일스톤 스테이지 클리어 보석 보상"),
-    ScalarField("StageLoop", "VictoryGemsMilestoneInterval", int, "보석 마일스톤 간격(스테이지)"),
     ScalarField("StageLoop", "VictorySoulsBase", int, "스테이지 클리어 영혼 보상 기본값"),
     ScalarField("StageLoop", "VictorySoulsStageDivisor", int, "영혼 보상 = Base + stage / 이 값"),
 
@@ -96,8 +94,14 @@ SCALAR_FIELDS: list[ScalarField] = [
     ScalarField("Combat", "ElementAdvantageMultiplier", float, "속성 상성 유리 시 데미지 배율"),
     ScalarField("Combat", "ElementDisadvantageMultiplier", float, "속성 상성 불리 시 데미지 배율"),
 
-    ScalarField("MergeGrid", "TotalCells", int, "머지 그리드 총 칸 수"),
+    ScalarField("MergeGrid", "TotalCells", int, "머지 그리드 총 칸 수(무기+방어구 공유)"),
     ScalarField("MergeGrid", "CellsPerUnlock", int, "그리드 해금 단위(칸)"),
+
+    ScalarField("Rune", "NormalStageDropChance", float, "일반 스테이지 클리어 시 룬 드롭 확률"),
+    ScalarField("Rune", "BossStageDropChance", float, "중간/대형 보스 스테이지 클리어 시 룬 드롭 확률"),
+
+    ScalarField("CharacterSlots", "StartingSlots", int, "런 시작 시 기본 캐릭터 인원"),
+    ScalarField("CharacterSlots", "MaxSlots", int, "골드로 해금 가능한 최대 캐릭터 인원"),
 ]
 
 SCALAR_FIELDS_BY_KEY: dict[str, ScalarField] = {f.key: f for f in SCALAR_FIELDS}
@@ -117,6 +121,12 @@ VM_UPGRADE_COSTS_COLUMNS = ["Level", "GoldCost"]
 
 MERGE_GRID_UNLOCK_COSTS_SHEET = "MergeGridUnlockCosts"
 MERGE_GRID_UNLOCK_COSTS_COLUMNS = ["Block", "GoldCost"]
+
+WEAPON_LEVEL_MULTIPLIERS_SHEET = "WeaponLevelMultipliers"
+WEAPON_LEVEL_MULTIPLIERS_COLUMNS = ["Level", "Multiplier"]
+
+CHARACTER_SLOT_UNLOCK_COSTS_SHEET = "CharacterSlotUnlockCosts"
+CHARACTER_SLOT_UNLOCK_COSTS_COLUMNS = ["Slot", "GoldCost"]
 
 SCALARS_SHEET = "Scalars"
 SCALARS_COLUMNS = ["Key", "Value", "Description"]

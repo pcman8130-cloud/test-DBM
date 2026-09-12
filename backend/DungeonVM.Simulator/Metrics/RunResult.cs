@@ -12,8 +12,9 @@ public sealed record RunResult(
     RunEndReason Outcome,
     int StagesCleared,
     int FinalGold,
-    int FinalGems,
     int FinalSouls,
     IReadOnlyList<string> FinalWeapons,
-    IReadOnlyList<string> FinalArmors
+    IReadOnlyList<string> FinalArmors,
+    int GridBottleneckSells,
+    int RuneAvoidanceSkips
 );

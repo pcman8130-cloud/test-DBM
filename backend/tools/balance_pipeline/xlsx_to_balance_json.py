@@ -44,6 +44,8 @@ from balance_schema import (
     ARMOR_ROLL_RANGES_COLUMNS,
     ARMOR_ROLL_RANGES_SHEET,
     ARMOR_RARITIES,
+    CHARACTER_SLOT_UNLOCK_COSTS_COLUMNS,
+    CHARACTER_SLOT_UNLOCK_COSTS_SHEET,
     MERGE_GRID_UNLOCK_COSTS_COLUMNS,
     MERGE_GRID_UNLOCK_COSTS_SHEET,
     SCALAR_FIELDS,
@@ -52,6 +54,8 @@ from balance_schema import (
     SCALARS_SHEET,
     VM_UPGRADE_COSTS_COLUMNS,
     VM_UPGRADE_COSTS_SHEET,
+    WEAPON_LEVEL_MULTIPLIERS_COLUMNS,
+    WEAPON_LEVEL_MULTIPLIERS_SHEET,
     WEAPON_TYPES,
     WEAPONS_COLUMNS,
     WEAPONS_SHEET,
@@ -75,10 +79,12 @@ def make_template(out_path: Path, seed_json_path: Path = DEFAULT_BALANCE_JSON) -
 
     _write_scalars_sheet(wb, seed)
     _write_weapons_sheet(wb, seed)
+    _write_weapon_level_multipliers_sheet(wb, seed)
     _write_armor_roll_ranges_sheet(wb, seed)
     _write_armor_market_values_sheet(wb, seed)
     _write_vm_upgrade_costs_sheet(wb, seed)
     _write_merge_grid_unlock_costs_sheet(wb, seed)
+    _write_character_slot_unlock_costs_sheet(wb, seed)
 
     wb.save(out_path)
     print(f"템플릿 생성 완료: {out_path}")
@@ -152,6 +158,25 @@ def _write_merge_grid_unlock_costs_sheet(wb: Workbook, seed: dict) -> None:
     _autosize(ws)
 
 
+def _write_weapon_level_multipliers_sheet(wb: Workbook, seed: dict) -> None:
+    ws = wb.create_sheet(WEAPON_LEVEL_MULTIPLIERS_SHEET)
+    ws.append(WEAPON_LEVEL_MULTIPLIERS_COLUMNS)
+    multipliers = seed.get("weapons", {}).get("levelMultipliers", [])
+    for level, multiplier in enumerate(multipliers, start=1):
+        ws.append([level, multiplier])
+    _autosize(ws)
+
+
+def _write_character_slot_unlock_costs_sheet(wb: Workbook, seed: dict) -> None:
+    ws = wb.create_sheet(CHARACTER_SLOT_UNLOCK_COSTS_SHEET)
+    ws.append(CHARACTER_SLOT_UNLOCK_COSTS_COLUMNS)
+    starting = seed.get("characterSlots", {}).get("startingSlots", 2)
+    costs = seed.get("characterSlots", {}).get("unlockGoldCosts", [])
+    for offset, cost in enumerate(costs, start=1):
+        ws.append([starting + offset, cost])
+    _autosize(ws)
+
+
 def _autosize(ws: Worksheet, min_width: int = 10) -> None:
     for col_cells in ws.columns:
         length = max((len(str(c.value)) for c in col_cells if c.value is not None), default=0)
@@ -173,10 +198,12 @@ def convert(xlsx_path: Path) -> dict:
     data: dict = {}
     _read_scalars_sheet(wb, data, errors)
     _read_weapons_sheet(wb, data, errors)
+    _read_weapon_level_multipliers_sheet(wb, data, errors)
     _read_armor_roll_ranges_sheet(wb, data, errors)
     _read_armor_market_values_sheet(wb, data, errors)
     _read_vm_upgrade_costs_sheet(wb, data, errors)
     _read_merge_grid_unlock_costs_sheet(wb, data, errors)
+    _read_character_slot_unlock_costs_sheet(wb, data, errors)
 
     if errors:
         raise ConversionError("\n".join(errors))
@@ -361,6 +388,42 @@ def _read_merge_grid_unlock_costs_sheet(wb, data: dict, errors: list[str]) -> No
 
     entries.sort(key=lambda t: t[0])
     data.setdefault("mergeGrid", {})["unlockGoldCosts"] = [cost for _, cost in entries]
+
+
+def _read_weapon_level_multipliers_sheet(wb, data: dict, errors: list[str]) -> None:
+    ws = _sheet(wb, WEAPON_LEVEL_MULTIPLIERS_SHEET, errors)
+    if ws is None:
+        return
+
+    entries = []
+    for row in _rows(ws):
+        if row.get("Level") is None:
+            continue
+        try:
+            entries.append((int(row["Level"]), float(row["Multiplier"])))
+        except (KeyError, TypeError, ValueError) as e:
+            errors.append(f"[{WEAPON_LEVEL_MULTIPLIERS_SHEET}] 행 값이 잘못되었습니다: {e}")
+
+    entries.sort(key=lambda t: t[0])
+    data.setdefault("weapons", {})["levelMultipliers"] = [multiplier for _, multiplier in entries]
+
+
+def _read_character_slot_unlock_costs_sheet(wb, data: dict, errors: list[str]) -> None:
+    ws = _sheet(wb, CHARACTER_SLOT_UNLOCK_COSTS_SHEET, errors)
+    if ws is None:
+        return
+
+    entries = []
+    for row in _rows(ws):
+        if row.get("Slot") is None:
+            continue
+        try:
+            entries.append((int(row["Slot"]), int(row["GoldCost"])))
+        except (KeyError, TypeError, ValueError) as e:
+            errors.append(f"[{CHARACTER_SLOT_UNLOCK_COSTS_SHEET}] 행 값이 잘못되었습니다: {e}")
+
+    entries.sort(key=lambda t: t[0])
+    data.setdefault("characterSlots", {})["unlockGoldCosts"] = [cost for _, cost in entries]
 
 
 # ---------------------------------------------------------------------------
