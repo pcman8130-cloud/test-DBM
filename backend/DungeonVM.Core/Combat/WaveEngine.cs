@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
 
@@ -11,6 +12,8 @@ public static class WaveEngine
         ElementType.Fire, ElementType.Ice, ElementType.Lightning, ElementType.Holy, ElementType.Dark,
     };
 
+    private static WaveBalanceSection Config => BalanceProvider.Current.Wave;
+
     public static bool IsMidBossStage(int stage) => stage % 5 == 0 && stage % 10 != 0;
     public static bool IsBigBossStage(int stage) => stage % 10 == 0;
 
@@ -19,19 +22,20 @@ public static class WaveEngine
 
     public static List<Monster> GenerateWave(int stage, Random rng)
     {
+        var config = Config;
         var wave = new List<Monster>();
-        double scale = 1 + (stage - 1) * 0.07;
+        double scale = config.ScaleBase + (stage - 1) * config.ScalePerStage;
 
-        int mobCount = 3 + stage / 4;
+        int mobCount = config.MobCountBase + stage / config.MobCountStageDivisor;
         for (int i = 0; i < mobCount; i++)
         {
             wave.Add(new Monster(
                 name: $"Mob_S{stage}_{i}",
                 element: ElementType.None,
-                maxHealth: 14 * scale,
-                damage: 2.2 * scale,
-                attacksPerSecond: 0.6 + rng.NextDouble() * 0.3,
-                goldReward: 3 + stage / 2));
+                maxHealth: config.MobBaseHealth * scale,
+                damage: config.MobBaseDamage * scale,
+                attacksPerSecond: config.MobApsMin + rng.NextDouble() * config.MobApsRandomRange,
+                goldReward: config.MobGoldBase + stage / config.MobGoldStageDivisor));
         }
 
         if (IsMidBossStage(stage))
@@ -39,10 +43,10 @@ public static class WaveEngine
             wave.Add(new Monster(
                 name: $"MidBoss_S{stage}",
                 element: ElementType.None,
-                maxHealth: 220 * scale,
-                damage: 10 * scale,
-                attacksPerSecond: 0.6,
-                goldReward: 40 + stage * 2,
+                maxHealth: config.MidBossHealth * scale,
+                damage: config.MidBossDamage * scale,
+                attacksPerSecond: config.MidBossAps,
+                goldReward: config.MidBossGoldBase + stage * config.MidBossGoldPerStage,
                 isMidBoss: true));
         }
 
@@ -52,10 +56,10 @@ public static class WaveEngine
             wave.Add(new Monster(
                 name: $"BigBoss_S{stage}_{element}",
                 element: element,
-                maxHealth: 600 * scale,
-                damage: 18 * scale,
-                attacksPerSecond: 0.5,
-                goldReward: 120 + stage * 4,
+                maxHealth: config.BigBossHealth * scale,
+                damage: config.BigBossDamage * scale,
+                attacksPerSecond: config.BigBossAps,
+                goldReward: config.BigBossGoldBase + stage * config.BigBossGoldPerStage,
                 isBigBoss: true));
         }
 

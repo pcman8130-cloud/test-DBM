@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
 
@@ -6,6 +7,8 @@ namespace DungeonVM.Core.Systems;
 /// <summary>3중 재화(Gold/Gems/Souls)의 획득·소비를 관장한다.</summary>
 public sealed class CurrencyManager
 {
+    private static CurrencyBalanceSection Config => BalanceProvider.Current.Currency;
+
     public int Gold { get; private set; }
     public int Gems { get; private set; }
     public int Souls { get; private set; }
@@ -31,28 +34,22 @@ public sealed class CurrencyManager
         }
     }
 
-    public static int WeaponMarketValue(Weapon w) => 10 * (1 << (w.Tier - 1));
+    public static int WeaponMarketValue(Weapon w) => Config.WeaponMarketValueTierBase * (1 << (w.Tier - 1));
 
-    public static int ArmorMarketValue(Armor a) => a.Rarity switch
-    {
-        ArmorRarity.Common => 15,
-        ArmorRarity.Rare => 40,
-        ArmorRarity.Epic => 90,
-        ArmorRarity.Legendary => 200,
-        _ => 0,
-    };
+    public static int ArmorMarketValue(Armor a)
+        => Config.ArmorMarketValues.TryGetValue(a.Rarity.ToString(), out var value) ? value : 0;
 
-    /// <summary>보유 장비 판매(50% 환급).</summary>
+    /// <summary>보유 장비 판매(레시피 SellRefundRatio 비율만큼 환급).</summary>
     public int SellWeapon(Weapon w)
     {
-        int refund = WeaponMarketValue(w) / 2;
+        int refund = (int)(WeaponMarketValue(w) * Config.SellRefundRatio);
         Gold += refund;
         return refund;
     }
 
     public int SellArmor(Armor a)
     {
-        int refund = ArmorMarketValue(a) / 2;
+        int refund = (int)(ArmorMarketValue(a) * Config.SellRefundRatio);
         Gold += refund;
         return refund;
     }

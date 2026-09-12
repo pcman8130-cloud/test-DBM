@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Combat;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Inventory;
@@ -14,6 +15,8 @@ namespace DungeonVM.Simulator;
 /// <summary>
 /// 던전 자판기 헤드리스 배치 시뮬레이터. 성향이 다른 가상 봇 3종을 각 1,000회(총 3,000회) 완주시켜
 /// "왜 유저가 고티어 대신 2티어 무기에 안주하는가"를 무기 티어 채택률로 검증한다.
+/// --balance &lt;path&gt; (또는 DUNGEONVM_BALANCE_JSON 환경변수)로 밸런스 JSON을 덮어써서
+/// 엑셀→JSON 파이프라인 산출물이나 대시보드가 조정한 값으로 재시뮬레이션할 수 있다.
 /// </summary>
 internal static class Program
 {
@@ -23,7 +26,17 @@ internal static class Program
 
     private static async Task<int> Main(string[] args)
     {
-        int runsPerBot = args.Length > 0 && int.TryParse(args[0], out var n) ? n : 1000;
+        var (runsPerBot, balancePath) = ParseArgs(args);
+
+        if (balancePath is not null)
+        {
+            BalanceProvider.LoadFromFile(balancePath);
+            Console.WriteLine($"밸런스 오버라이드 로드: {balancePath}");
+        }
+        else
+        {
+            Console.WriteLine("밸런스: DungeonVM.Core 기본값(임베디드 DefaultBalance.json) 사용");
+        }
 
         IBot[] bots = { new GreedyMergerBot(), new SaverUpgraderBot(), new BalancedOptimizerBot() };
         var metaByBot = bots.ToDictionary(b => b.Name, _ => new MetaProgression());
@@ -70,9 +83,42 @@ internal static class Program
         Console.WriteLine($"\n총 {totalRuns}회 실행 완료 ({sw.Elapsed.TotalSeconds:F1}s)\n");
 
         PrintReport(bots, collector, metricsByBot);
+        WriteSummaryJson(bots, collector, metricsByBot);
         await RunLlmBalancingAsync(metricsByBot);
 
         return 0;
+    }
+
+    /// <summary>"[숫자] [--balance &lt;path&gt;]" 형태를 파싱한다. --balance가 없으면 DUNGEONVM_BALANCE_JSON 환경변수를 확인한다.</summary>
+    private static (int RunsPerBot, string? BalancePath) ParseArgs(string[] args)
+    {
+        int runsPerBot = 1000;
+        string? balancePath = null;
+        var positional = new List<string>();
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--balance")
+            {
+                if (i + 1 >= args.Length)
+                    throw new ArgumentException("--balance 옵션 뒤에는 JSON 파일 경로가 와야 합니다.");
+                balancePath = args[++i];
+            }
+            else if (args[i].StartsWith("--balance=", StringComparison.Ordinal))
+            {
+                balancePath = args[i]["--balance=".Length..];
+            }
+            else
+            {
+                positional.Add(args[i]);
+            }
+        }
+
+        if (positional.Count > 0 && int.TryParse(positional[0], out var n))
+            runsPerBot = n;
+
+        balancePath ??= Environment.GetEnvironmentVariable("DUNGEONVM_BALANCE_JSON");
+        return (runsPerBot, balancePath);
     }
 
     private static RunResult SimulateOneRun(IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics)
@@ -210,6 +256,54 @@ internal static class Program
             }
             Console.WriteLine();
         }
+    }
+
+    /// <summary>
+    /// 콘솔 리포트와 동일한 수치를 summary.json으로 저장한다. 실시간 대시보드(B)가 콘솔 출력을 파싱하지 않고
+    /// 이 파일 하나만 읽어서 밸런스 파라미터 변경 → 재시뮬레이션 → 그래프 갱신 루프를 구성할 수 있게 하기 위함.
+    /// </summary>
+    private static void WriteSummaryJson(IBot[] bots, RunLogCollector collector, Dictionary<string, WeaponTierMetrics> metricsByBot)
+    {
+        var botSummaries = bots.Select(bot =>
+        {
+            var metrics = metricsByBot[bot.Name];
+
+            var weaponAdoption = Enum.GetValues(typeof(WeaponType)).Cast<WeaponType>()
+                .SelectMany(type => Enumerable.Range(1, WeaponCatalog.MaxTier)
+                    .Select(tier => (type, tier, rate: metrics.WeaponAdoptionRate(type, tier))))
+                .Where(x => x.rate > 0)
+                .Select(x => new { weaponType = x.type.ToString(), tier = x.tier, adoptionRate = x.rate })
+                .ToList();
+
+            var armorAdoption = Enum.GetValues(typeof(ArmorType)).Cast<ArmorType>()
+                .SelectMany(type => Enum.GetValues(typeof(ArmorRarity)).Cast<ArmorRarity>()
+                    .Select(rarity => (type, rarity, rate: metrics.ArmorAdoptionRate(type, rarity))))
+                .Where(x => x.rate > 0)
+                .Select(x => new { armorType = x.type.ToString(), rarity = x.rarity.ToString(), adoptionRate = x.rate })
+                .ToList();
+
+            return new
+            {
+                botName = bot.Name,
+                winRate = collector.WinRate(bot.Name),
+                averageStagesCleared = collector.AverageStagesCleared(bot.Name),
+                averageFinalGold = collector.AverageFinalGold(bot.Name),
+                outcomeBreakdown = collector.OutcomeBreakdown(bot.Name).ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+                weaponAdoption,
+                armorAdoption,
+            };
+        }).ToList();
+
+        var summary = new
+        {
+            generatedAtUtc = DateTime.UtcNow,
+            maxStage = StageLoop.MaxStage,
+            bots = botSummaries,
+        };
+
+        string path = Path.Combine(AppContext.BaseDirectory, "summary.json");
+        File.WriteAllText(path, JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"요약 결과를 {path}에 저장했습니다.\n");
     }
 
     private static async Task RunLlmBalancingAsync(Dictionary<string, WeaponTierMetrics> metricsByBot)

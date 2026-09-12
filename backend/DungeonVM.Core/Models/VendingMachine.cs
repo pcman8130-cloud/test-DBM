@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 
 namespace DungeonVM.Core.Models;
@@ -5,10 +6,11 @@ namespace DungeonVM.Core.Models;
 /// <summary>체력만 보유한 방어 목표물이자 공격/방어 뽑기 UI의 실체. 업그레이드할수록 고티어/고등급 확률이 오른다.</summary>
 public sealed class VendingMachine
 {
-    private const double BaseHealth = 300;
-    public const int MaxUpgradeLevel = 5;
+    private static VendingMachineBalanceSection Config => BalanceProvider.Current.VendingMachine;
 
-    public double MaxHealth { get; private set; } = BaseHealth;
+    public static int MaxUpgradeLevel => Config.MaxUpgradeLevel;
+
+    public double MaxHealth { get; private set; }
     public double CurrentHealth { get; private set; }
     public int AttackUpgradeLevel { get; private set; } = 1;
     public int DefenseUpgradeLevel { get; private set; } = 1;
@@ -18,6 +20,7 @@ public sealed class VendingMachine
 
     public VendingMachine()
     {
+        MaxHealth = Config.BaseHealth;
         CurrentHealth = MaxHealth;
     }
 
@@ -32,7 +35,7 @@ public sealed class VendingMachine
     public Weapon RollWeapon(Random rng)
     {
         var type = AllWeaponTypes[rng.Next(AllWeaponTypes.Length)];
-        double tier2Chance = 0.05 + (AttackUpgradeLevel - 1) * 0.08; // Lv1: 5% ~ Lv5: 37%
+        double tier2Chance = Config.Tier2ChanceBase + (AttackUpgradeLevel - 1) * Config.Tier2ChancePerLevel;
 
         if (NextRollGuaranteedTier2)
         {
@@ -48,9 +51,9 @@ public sealed class VendingMachine
     {
         var type = AllArmorTypes[rng.Next(AllArmorTypes.Length)];
         double roll = rng.NextDouble();
-        double legendary = 0.01 + (DefenseUpgradeLevel - 1) * 0.02;
-        double epic = 0.08 + (DefenseUpgradeLevel - 1) * 0.05;
-        double rare = 0.30 + (DefenseUpgradeLevel - 1) * 0.05;
+        double legendary = Config.LegendaryChanceBase + (DefenseUpgradeLevel - 1) * Config.LegendaryChancePerLevel;
+        double epic = Config.EpicChanceBase + (DefenseUpgradeLevel - 1) * Config.EpicChancePerLevel;
+        double rare = Config.RareChanceBase + (DefenseUpgradeLevel - 1) * Config.RareChancePerLevel;
 
         var rarity = roll switch
         {
@@ -63,14 +66,11 @@ public sealed class VendingMachine
         return Armor.RollRandom(rng, type, rarity);
     }
 
-    public static int UpgradeGoldCost(int currentLevel) => currentLevel switch
+    public static int UpgradeGoldCost(int currentLevel)
     {
-        1 => 150,
-        2 => 350,
-        3 => 700,
-        4 => 1300,
-        _ => int.MaxValue,
-    };
+        var costs = Config.UpgradeGoldCosts;
+        return currentLevel >= 1 && currentLevel <= costs.Count ? costs[currentLevel - 1] : int.MaxValue;
+    }
 
     public int AttackUpgradeCost => UpgradeGoldCost(AttackUpgradeLevel);
     public int DefenseUpgradeCost => UpgradeGoldCost(DefenseUpgradeLevel);
@@ -81,6 +81,6 @@ public sealed class VendingMachine
     public void UpgradeAttackLevel() => AttackUpgradeLevel = Math.Min(MaxUpgradeLevel, AttackUpgradeLevel + 1);
     public void UpgradeDefenseLevel() => DefenseUpgradeLevel = Math.Min(MaxUpgradeLevel, DefenseUpgradeLevel + 1);
 
-    public const int WeaponRollCost = 20;
-    public const int ArmorRollCost = 20;
+    public static int WeaponRollCost => Config.WeaponRollCost;
+    public static int ArmorRollCost => Config.ArmorRollCost;
 }

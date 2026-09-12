@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 
 namespace DungeonVM.Core.Models;
@@ -18,20 +19,12 @@ public sealed class Armor
         Rarity = rarity;
         BonusHealth = bonusHealth;
         AttackSpeedBonus = attackSpeedBonus;
-        DodgeChance = Math.Clamp(dodgeChance, 0, 0.75);
+        DodgeChance = Math.Clamp(dodgeChance, 0, BalanceProvider.Current.Armor.DodgeClampMax);
     }
-
-    private static readonly Dictionary<ArmorRarity, (double MinHp, double MaxHp, double MinAtk, double MaxAtk, double MinDodge, double MaxDodge)> RollRanges = new()
-    {
-        [ArmorRarity.Common] = (10, 25, 0.00, 0.03, 0.00, 0.03),
-        [ArmorRarity.Rare] = (25, 50, 0.03, 0.07, 0.03, 0.06),
-        [ArmorRarity.Epic] = (50, 90, 0.07, 0.12, 0.06, 0.10),
-        [ArmorRarity.Legendary] = (90, 150, 0.12, 0.20, 0.10, 0.16),
-    };
 
     public static Armor RollRandom(Random rng, ArmorType type, ArmorRarity rarity)
     {
-        var range = RollRanges[rarity];
+        var range = BalanceProvider.Current.Armor.RollRanges[rarity.ToString()];
         double hp = Lerp(rng, range.MinHp, range.MaxHp);
         double atk = Lerp(rng, range.MinAtk, range.MaxAtk);
         double dodge = Lerp(rng, range.MinDodge, range.MaxDodge);

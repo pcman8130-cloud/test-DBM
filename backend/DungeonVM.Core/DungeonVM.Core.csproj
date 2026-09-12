@@ -9,4 +9,12 @@
     <AssemblyName>DungeonVM.Core</AssemblyName>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Balance\DefaultBalance.json" />
+  </ItemGroup>
+
 </Project>

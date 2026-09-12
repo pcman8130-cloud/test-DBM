@@ -12,7 +12,7 @@ public sealed class Weapon
 
     public Weapon(WeaponType type, int tier = 1, ElementType element = ElementType.None)
     {
-        if (tier is < 1 or > WeaponCatalog.MaxTier)
+        if (tier < 1 || tier > WeaponCatalog.MaxTier)
             throw new ArgumentOutOfRangeException(nameof(tier), $"티어는 1~{WeaponCatalog.MaxTier} 사이여야 합니다.");
 
         Type = type;

@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Combat;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Inventory;
@@ -8,7 +9,9 @@ namespace DungeonVM.Core.Systems;
 /// <summary>1~30 스테이지 진행, 웨이브 생성, 클리어 보상, 정비 페이즈 전환을 조율하는 최상위 오케스트레이터.</summary>
 public sealed class StageLoop
 {
-    public const int MaxStage = 30;
+    private static StageLoopBalanceSection Config => BalanceProvider.Current.StageLoop;
+
+    public static int MaxStage => Config.MaxStage;
 
     public int CurrentStage { get; private set; } = 1;
     public StagePhase Phase { get; private set; } = StagePhase.Maintenance;
@@ -38,9 +41,10 @@ public sealed class StageLoop
     /// <summary>스테이지 클리어 처리: 보상 지급, 전원 자동 부활, 다음 스테이지로 진행 후 정비 페이즈 전환.</summary>
     public void CompleteStageVictory()
     {
-        int goldReward = 30 + CurrentStage * 5;
-        int gemsReward = CurrentStage % 5 == 0 ? 5 : 1;
-        int soulsReward = 2 + CurrentStage / 3;
+        var config = Config;
+        int goldReward = config.VictoryGoldBase + CurrentStage * config.VictoryGoldPerStage;
+        int gemsReward = CurrentStage % config.VictoryGemsMilestoneInterval == 0 ? config.VictoryGemsMilestone : config.VictoryGemsDefault;
+        int soulsReward = config.VictorySoulsBase + CurrentStage / config.VictorySoulsStageDivisor;
 
         Currency.Add(CurrencyType.Gold, goldReward);
         Currency.Add(CurrencyType.Gems, gemsReward);

@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 
 namespace DungeonVM.Core.Models;
@@ -5,8 +6,7 @@ namespace DungeonVM.Core.Models;
 /// <summary>기본 스탯이 없는 빈 껍데기 아바타. 장착한 무기+방어구가 모든 전투 능력을 결정한다.</summary>
 public sealed class Character
 {
-    private const double BaseHealth = 70;
-    private const double RetireDurationSeconds = 30;
+    private static CharacterBalanceSection Config => BalanceProvider.Current.Character;
 
     private readonly double _metaBaseHealthBonus;
 
@@ -26,7 +26,7 @@ public sealed class Character
         CurrentHealth = MaxHealth;
     }
 
-    public double MaxHealth => BaseHealth + _metaBaseHealthBonus + (EquippedWeapon?.BonusHealth ?? 0) + (EquippedArmor?.BonusHealth ?? 0);
+    public double MaxHealth => Config.BaseHealth + _metaBaseHealthBonus + (EquippedWeapon?.BonusHealth ?? 0) + (EquippedArmor?.BonusHealth ?? 0);
     public double AttackDamage => EquippedWeapon?.Damage ?? 0;
     public double AttacksPerSecond => (EquippedWeapon?.AttacksPerSecond ?? 0) * (1 + (EquippedArmor?.AttackSpeedBonus ?? 0));
     public double DodgeChance => EquippedArmor?.DodgeChance ?? 0;
@@ -78,7 +78,7 @@ public sealed class Character
     private void Retire()
     {
         IsRetired = true;
-        RetireRemainingSeconds = RetireDurationSeconds;
+        RetireRemainingSeconds = Config.RetireDurationSeconds;
     }
 
     /// <summary>매 틱 호출. 유물/스킬로 리타이어 시간이 단축된 경우 retireSpeedMultiplier &gt; 1을 전달한다.</summary>

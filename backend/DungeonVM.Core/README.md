@@ -8,6 +8,7 @@ UI 렌더링, 스프라이트, 연출은 이 프로젝트의 책임이 아닙니
 
 | 폴더 | 내용 |
 |---|---|
+| `Balance/` | BalanceData(밸런스 JSON 스키마), BalanceProvider(로딩/오버레이), DefaultBalance.json(임베디드 기본값) |
 | `Enums/` | WeaponType, ArmorType, ArmorRarity, ElementType, StagePhase, RowPosition, RunEndReason, CurrencyType |
 | `Models/` | Character(빈 껍데기 아바타), Weapon, Armor, Monster, Relic, Rune, VendingMachine, WeaponCatalog(무기 기초 스탯 테이블) |
 | `Combat/` | DamageCalculator(속성 상성), FormationManager(전열/후열 자동 배치), WaveEngine(웨이브 생성), BattleField(실시간 틱 시뮬레이션) |
@@ -29,7 +30,24 @@ UI 렌더링, 스프라이트, 연출은 이 프로젝트의 책임이 아닙니
 
 ## 밸런스 수치 조정 위치
 
-| 항목 | 파일 |
+무기/방어구/자판기/웨이브/영혼 스킬트리/재화/스테이지 보상/캐릭터/속성 상성/머지 그리드의 모든 수치는
+더 이상 C# 하드코딩이 아니라 **[`Balance/BalanceProvider.cs`](Balance/BalanceProvider.cs)를 거친 JSON 값**입니다.
+기본값은 임베디드 리소스 [`Balance/DefaultBalance.json`](Balance/DefaultBalance.json)이고, 스키마는
+[`Balance/BalanceData.cs`](Balance/BalanceData.cs)에 정의되어 있습니다.
+
+- **값만 바꾸고 싶다면**: `Balance/DefaultBalance.json`을 직접 수정하거나(가장 빠름),
+  `tools/balance_pipeline`의 엑셀 파이프라인으로 생성한 JSON을 같은 경로에 덮어씁니다.
+- **런타임에 다른 값으로 실행하고 싶다면**(예: 시뮬레이터 A/B 비교): `BalanceProvider.LoadFromFile(path)` /
+  `LoadFromJson(json)`을 앱 시작 시 호출합니다. `DungeonVM.Simulator`는 `--balance <path>` CLI 인자로 이미 지원합니다.
+  넘긴 JSON에 없는 섹션은 이전 값을 그대로 유지하므로, 바꾸고 싶은 섹션만 담아도 됩니다.
+- **필드를 추가/삭제하는 구조 변경이라면**: `Balance/BalanceData.cs`, `Balance/DefaultBalance.json`,
+  각 소비 클래스(`WeaponCatalog`, `VendingMachine`, `Armor`, `WaveEngine`, `MetaProgression`, `CurrencyManager`,
+  `StageLoop`, `Character`, `DamageCalculator`, `MergeGrid`), 그리고 `tools/balance_pipeline/balance_schema.py`를
+  함께 갱신해야 합니다.
+
+각 항목이 실제로 어느 클래스에서 소비되는지는 아래를 참고하세요.
+
+| 항목 | 소비 클래스 |
 |---|---|
 | 무기별 기초 데미지/공속/체력/특수치, 티어당 성장 배율 | [`Models/WeaponCatalog.cs`](Models/WeaponCatalog.cs) |
 | 자판기 뽑기 확률(2티어 확률, 방어구 등급 확률), 업그레이드 비용 | [`Models/VendingMachine.cs`](Models/VendingMachine.cs) |
@@ -37,14 +55,15 @@ UI 렌더링, 스프라이트, 연출은 이 프로젝트의 책임이 아닙니
 | 그리드 해금 비용 | [`Inventory/MergeGrid.cs`](Inventory/MergeGrid.cs) |
 | 몬스터 스케일링, 몹 수, 중간/대형 보스 스탯 | [`Combat/WaveEngine.cs`](Combat/WaveEngine.cs) |
 | 속성 상성 배율(순환/Holy↔Dark) | [`Combat/DamageCalculator.cs`](Combat/DamageCalculator.cs) |
-| 동시 교전 가능 수(EngagementCap) | [`Combat/BattleField.cs`](Combat/BattleField.cs) |
-| 장비 판매 시세(50% 환급 기준) | [`Systems/CurrencyManager.cs`](Systems/CurrencyManager.cs) |
+| 동시 교전 가능 수(EngagementCap, 밸런스 JSON 미포함 — 상수 유지) | [`Combat/BattleField.cs`](Combat/BattleField.cs) |
+| 장비 판매 시세/환급 비율 | [`Systems/CurrencyManager.cs`](Systems/CurrencyManager.cs) |
 | 영혼 스킬트리 비용/효과 | [`Systems/MetaProgression.cs`](Systems/MetaProgression.cs) |
 | 스테이지 클리어 보상(골드/보석/영혼) | [`Systems/StageLoop.cs`](Systems/StageLoop.cs) |
-
-값은 대부분 `const`나 정적 딕셔너리/테이블이라 수치만 바꾸고 다시 빌드하면 바로 반영됩니다.
+| 캐릭터 기본 체력/리타이어 지속시간 | [`Models/Character.cs`](Models/Character.cs) |
 
 ## 빌드
+
+`backend/` 안에서 실행합니다.
 
 ```bash
 dotnet build DungeonVM.Core/DungeonVM.Core.csproj

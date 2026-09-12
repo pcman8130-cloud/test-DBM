@@ -57,9 +57,10 @@ from balance_schema import (
     WEAPONS_SHEET,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_BALANCE_JSON = REPO_ROOT / "DungeonVM.Core" / "Balance" / "DefaultBalance.json"
-SIMULATOR_PROJECT = REPO_ROOT / "DungeonVM.Simulator" / "DungeonVM.Simulator.csproj"
+# backend/tools/balance_pipeline/이 파일 위치이므로 parents[2] = backend/ (Unity 프로젝트가 있는 저장소 루트가 아님).
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_BALANCE_JSON = BACKEND_ROOT / "DungeonVM.Core" / "Balance" / "DefaultBalance.json"
+SIMULATOR_PROJECT = BACKEND_ROOT / "DungeonVM.Simulator" / "DungeonVM.Simulator.csproj"
 
 
 # ---------------------------------------------------------------------------
@@ -411,7 +412,7 @@ def _run_simulator(balance_json: Path, runs_per_bot: int) -> None:
         "dotnet", "run", "--project", str(SIMULATOR_PROJECT), "--",
         str(runs_per_bot), "--balance", str(balance_json),
     ]
-    subprocess.run(cmd, check=False, cwd=REPO_ROOT)
+    subprocess.run(cmd, check=False, cwd=BACKEND_ROOT)
 
 
 if __name__ == "__main__":

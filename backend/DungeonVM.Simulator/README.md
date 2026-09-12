@@ -5,6 +5,8 @@
 
 ## 실행
 
+`backend/` 안에서 실행합니다.
+
 ```bash
 dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release
 ```
@@ -14,6 +16,20 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release
 ```bash
 dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -- 50
 ```
+
+## 밸런스 오버라이드
+
+모든 밸런스 수치는 `DungeonVM.Core`의 [`BalanceProvider`](../DungeonVM.Core/Balance/BalanceProvider.cs)를 거쳐 나옵니다.
+기본값은 임베디드 리소스 `DefaultBalance.json`이지만, `--balance <경로>`(또는 `DUNGEONVM_BALANCE_JSON` 환경변수)로
+JSON 파일을 지정하면 그 값으로 덮어써서 실행됩니다. JSON은 전체 섹션을 다 채우지 않아도 되며, 포함된 섹션만
+기본값 위에 덮어씌워집니다(예: `vendingMachine` 섹션만 담은 파일도 유효).
+
+```bash
+dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -- 500 --balance my_balance.json
+```
+
+기획자가 엑셀로 밸런스를 조정해 이 JSON을 만드는 파이프라인은 [`tools/balance_pipeline`](../tools/balance_pipeline)를 참고하세요
+(`convert ... --simulate 500`으로 변환과 재시뮬레이션을 한 번에 실행할 수 있습니다).
 
 ## 봇 3종 ([`Bots/`](Bots))
 
@@ -30,7 +46,9 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
 
 1. **콘솔 리포트**: 봇별 승률/평균 도달 스테이지/종료 사유, 무기 티어별·방어구 등급별 채택률, LLM 밸런싱 모듈 감지 결과
 2. **`bin/<Config>/net8.0/run_logs.jsonl`**: 런 1건당 1줄 JSON(`RunResult`) — 항상 기록됨
-3. **`bin/<Config>/net8.0/balance_suggestions.json`**: LLM이 제안한 밸런스 조정안(API 키가 설정된 경우에만 생성)
+3. **`bin/<Config>/net8.0/summary.json`**: 콘솔 리포트와 동일한 집계(승률/평균 스테이지/채택률)를 담은 요약 JSON —
+   대시보드 등 외부 도구가 콘솔 출력을 파싱하지 않고 이 파일만 읽으면 되도록 함
+4. **`bin/<Config>/net8.0/balance_suggestions.json`**: LLM이 제안한 밸런스 조정안(API 키가 설정된 경우에만 생성)
 
 ## Supabase 로깅 (선택)
 

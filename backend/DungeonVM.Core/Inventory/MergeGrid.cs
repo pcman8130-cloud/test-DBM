@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
 
@@ -6,8 +7,10 @@ namespace DungeonVM.Core.Inventory;
 /// <summary>4x4(16칸) 머지 보관함. 시작 시 1x4(4칸)만 해금되고, 이후 4칸 단위로 골드를 소모해 순차 해금한다.</summary>
 public sealed class MergeGrid
 {
-    public const int TotalCells = 16;
-    public const int CellsPerUnlock = 4;
+    private static MergeGridBalanceSection Config => BalanceProvider.Current.MergeGrid;
+
+    public static int TotalCells => Config.TotalCells;
+    public static int CellsPerUnlock => Config.CellsPerUnlock;
 
     private readonly Weapon?[] _cells = new Weapon?[TotalCells];
 
@@ -85,13 +88,12 @@ public sealed class MergeGrid
         return null;
     }
 
-    public static int NextUnlockGoldCost(int unlockedCells) => (unlockedCells / CellsPerUnlock) switch
+    public static int NextUnlockGoldCost(int unlockedCells)
     {
-        1 => 100,  // 2번째 블록(칸 5~8)
-        2 => 250,  // 3번째 블록
-        3 => 500,  // 4번째 블록
-        _ => int.MaxValue,
-    };
+        int blockIndex = unlockedCells / CellsPerUnlock; // 1 = 2번째 블록(칸 5~8), 2 = 3번째, 3 = 4번째
+        var costs = Config.UnlockGoldCosts;
+        return blockIndex >= 1 && blockIndex <= costs.Count ? costs[blockIndex - 1] : int.MaxValue;
+    }
 
     public int NextUnlockGoldCost() => NextUnlockGoldCost(UnlockedCells);
 
