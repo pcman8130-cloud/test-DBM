@@ -1086,9 +1086,9 @@
     DIFFICULTY_GATES.forEach(function(g){ if(stage>=g.stage) scale *= g.mult; });
     return scale;
   }
-  // 5/10/15/20스테는 전체 보스 곡선(특히 11스테 난이도 게이트 이후)이 과했다는 플레이테스트
-  // 피드백으로 30% 하향. 25/30은 아직 미검증이라 일단 그대로 둠 — 필요하면 여기 값만 추가.
-  var BOSS_STAGE_OVERRIDES = { 5: 0.7, 10: 0.7, 15: 0.7, 20: 0.7 };
+  // 5/10/15/20/25/30스테는 전체 보스 곡선(특히 11/21스테 난이도 게이트 이후)이 과했다는
+  // 플레이테스트 피드백으로 전부 30% 하향.
+  var BOSS_STAGE_OVERRIDES = { 5: 0.7, 10: 0.7, 15: 0.7, 20: 0.7, 25: 0.7, 30: 0.7 };
   function bossStageMult(stage){ return BOSS_STAGE_OVERRIDES[stage] || 1; }
   function makeWave(stage){
     var scale = scaleAt(stage);
@@ -1312,12 +1312,14 @@
       var target = pickCharTarget();
       if(!target) return;
       log('⚡ <b>'+m.name+'</b>이(가) 강타를 준비합니다!');
-      hitCharacter(target, m.dmg*2.5, m.name+'의 강타');
+      hitCharacter(target, m.dmg*1.8, m.name+'의 강타');
     } else if(m.bossTier==='boss'){
+      // 광역기는 전열 탱킹을 무시하고 파티 전원을 동시에 때리므로, 단일 대상 평타보다도
+      // 인당 배율을 낮게 잡아야 함(몹 기초스탯을 여러 차례 상향한 뒤로 0.7배가 적정선).
       log('🌀 <b>'+m.name+'</b>이(가) 광역 강습을 발동합니다!');
       state.characters.forEach(function(c){
         if(!c.alive || !isCombatant(c)) return;
-        hitCharacter(c, m.dmg*1.3, m.name+'의 광역 강습');
+        hitCharacter(c, m.dmg*0.7, m.name+'의 광역 강습');
       });
     }
   }
