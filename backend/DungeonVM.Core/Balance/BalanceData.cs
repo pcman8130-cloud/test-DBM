@@ -101,6 +101,17 @@ public sealed class WaveBalanceSection
     public double BigBossAps { get; set; }
     public int BigBossGoldBase { get; set; }
     public int BigBossGoldPerStage { get; set; }
+
+    /// <summary>이 스테이지부터 전체 스케일에 DifficultyGateMultiplier가 곱연산으로 누적 적용된다(11/21스테 난이도 벽).
+    /// 두 게이트를 다 넘긴 스테이지는 배율이 두 번 곱해진다. HTML 프로토타입 플레이테스트에서
+    /// 매끈한 성장 곡선이 "방치형" 체감을 준다는 피드백으로 추가됨.</summary>
+    public int DifficultyGateStage1 { get; set; }
+    public int DifficultyGateStage2 { get; set; }
+    public double DifficultyGateMultiplier { get; set; } = 1.0;
+
+    /// <summary>모든 중간보스·대형보스(5/10/15/20/25/30스테)의 체력·공격력에 곱해지는 하향 배율.
+    /// 위 난이도 게이트 도입 후 보스가 과하게 강해졌다는 플레이테스트 피드백으로 추가됨(기본 1.0 = 하향 없음).</summary>
+    public double BossNerfMultiplier { get; set; } = 1.0;
 }
 
 public sealed class MetaProgressionBalanceSection

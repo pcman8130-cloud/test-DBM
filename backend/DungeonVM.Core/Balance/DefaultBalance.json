@@ -11,7 +11,7 @@
       "Dagger": { "row": "Front", "baseDamage": 7,  "attacksPerSecond": 2.2, "bonusHealth": 10, "pullAggro": 0 },
       "Bow":    { "row": "Back",  "baseDamage": 10, "attacksPerSecond": 1.4, "bonusHealth": 8,  "pullAggro": 0 },
       "Staff":  { "row": "Back",  "baseDamage": 9,  "attacksPerSecond": 0.9, "bonusHealth": 8,  "pullAggro": 0 },
-      "Bible":  { "row": "Back",  "baseDamage": 4,  "attacksPerSecond": 1.0, "bonusHealth": 8,  "pullAggro": 3.0 }
+      "Bible":  { "row": "Back",  "baseDamage": 8,  "attacksPerSecond": 1.0, "bonusHealth": 18, "pullAggro": 3.0 }
     }
   },
   "armor": {
@@ -42,22 +42,26 @@
     "scalePerStage": 0.035,
     "mobCountBase": 3,
     "mobCountStageDivisor": 4,
-    "mobBaseHealth": 12,
-    "mobBaseDamage": 1.5,
+    "mobBaseHealth": 55,
+    "mobBaseDamage": 4.5,
     "mobApsMin": 0.6,
     "mobApsRandomRange": 0.3,
     "mobGoldBase": 3,
     "mobGoldStageDivisor": 2,
-    "midBossHealth": 220,
-    "midBossDamage": 10,
+    "midBossHealth": 600,
+    "midBossDamage": 18,
     "midBossAps": 0.6,
     "midBossGoldBase": 40,
     "midBossGoldPerStage": 2,
-    "bigBossHealth": 600,
-    "bigBossDamage": 18,
+    "bigBossHealth": 1600,
+    "bigBossDamage": 30,
     "bigBossAps": 0.5,
     "bigBossGoldBase": 120,
-    "bigBossGoldPerStage": 4
+    "bigBossGoldPerStage": 4,
+    "difficultyGateStage1": 11,
+    "difficultyGateStage2": 21,
+    "difficultyGateMultiplier": 2.6,
+    "bossNerfMultiplier": 0.7
   },
   "metaProgression": {
     "maxLevel": 5,

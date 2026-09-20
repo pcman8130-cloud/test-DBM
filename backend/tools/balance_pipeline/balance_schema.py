@@ -71,6 +71,10 @@ SCALAR_FIELDS: list[ScalarField] = [
     ScalarField("Wave", "BigBossAps", float, "대형 보스 초당 공격 횟수"),
     ScalarField("Wave", "BigBossGoldBase", int, "대형 보스 처치 골드 기본값"),
     ScalarField("Wave", "BigBossGoldPerStage", int, "대형 보스 골드 스테이지당 증가량"),
+    ScalarField("Wave", "DifficultyGateStage1", int, "1차 난이도 게이트 스테이지 — 이 스테이지부터 스케일에 DifficultyGateMultiplier 곱연산 적용"),
+    ScalarField("Wave", "DifficultyGateStage2", int, "2차 난이도 게이트 스테이지 — 이 스테이지부터 스케일에 DifficultyGateMultiplier 한 번 더 곱연산 적용"),
+    ScalarField("Wave", "DifficultyGateMultiplier", float, "난이도 게이트 통과 시 스케일에 곱해지는 배율(게이트 2개를 다 넘으면 제곱으로 누적)"),
+    ScalarField("Wave", "BossNerfMultiplier", float, "모든 중간·대형보스(5/10/15/20/25/30스테)의 체력·공격력에 곱해지는 하향 배율(1.0=하향 없음)"),
 
     ScalarField("MetaProgression", "MaxLevel", int, "영혼 스킬트리 항목별 최대 레벨"),
     ScalarField("MetaProgression", "LevelCostBase", int, "레벨업 비용 기본값"),

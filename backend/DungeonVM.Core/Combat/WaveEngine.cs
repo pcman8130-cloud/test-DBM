@@ -25,6 +25,10 @@ public static class WaveEngine
         var config = Config;
         var wave = new List<Monster>();
         double scale = config.ScaleBase + (stage - 1) * config.ScalePerStage;
+        if (config.DifficultyGateStage1 > 0 && stage >= config.DifficultyGateStage1)
+            scale *= config.DifficultyGateMultiplier;
+        if (config.DifficultyGateStage2 > 0 && stage >= config.DifficultyGateStage2)
+            scale *= config.DifficultyGateMultiplier;
 
         int mobCount = config.MobCountBase + stage / config.MobCountStageDivisor;
         for (int i = 0; i < mobCount; i++)
@@ -43,8 +47,8 @@ public static class WaveEngine
             wave.Add(new Monster(
                 name: $"MidBoss_S{stage}",
                 element: ElementType.None,
-                maxHealth: config.MidBossHealth * scale,
-                damage: config.MidBossDamage * scale,
+                maxHealth: config.MidBossHealth * scale * config.BossNerfMultiplier,
+                damage: config.MidBossDamage * scale * config.BossNerfMultiplier,
                 attacksPerSecond: config.MidBossAps,
                 goldReward: config.MidBossGoldBase + stage * config.MidBossGoldPerStage,
                 isMidBoss: true));
@@ -56,8 +60,8 @@ public static class WaveEngine
             wave.Add(new Monster(
                 name: $"BigBoss_S{stage}_{element}",
                 element: element,
-                maxHealth: config.BigBossHealth * scale,
-                damage: config.BigBossDamage * scale,
+                maxHealth: config.BigBossHealth * scale * config.BossNerfMultiplier,
+                damage: config.BigBossDamage * scale * config.BossNerfMultiplier,
                 attacksPerSecond: config.BigBossAps,
                 goldReward: config.BigBossGoldBase + stage * config.BigBossGoldPerStage,
                 isBigBoss: true));
