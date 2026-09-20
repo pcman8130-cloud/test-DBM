@@ -1088,18 +1088,18 @@
     var tier = tierOf(stage);
     var info = getStageInfo(stage);
     if(tier==='boss'){
-      var hp = Math.round(600*scale);
-      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:18*scale, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
+      var hp = Math.round(950*scale);
+      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:22*scale, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     if(tier==='mid'){
-      var hp = Math.round(220*scale);
-      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:10*scale, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
+      var hp = Math.round(360*scale);
+      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:13*scale, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     var count = 3 + Math.floor(stage/4);
     var list=[];
     for(var i=0;i<count;i++){
-      var hp = Math.round(12*scale*rnd(0.9,1.1));
-      list.push({ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:1.5*scale, aps:rnd(0.6,0.9), atkTimer:rnd(0.2,1.2), alive:true, gold:3+Math.floor(stage/2), burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 });
+      var hp = Math.round(32*scale*rnd(0.9,1.1));
+      list.push({ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:2.8*scale, aps:rnd(0.6,0.9), atkTimer:rnd(0.2,1.2), alive:true, gold:3+Math.floor(stage/2), burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 });
     }
     return list;
   }
