@@ -1,5 +1,5 @@
 {
-  "_meta": "prototype/dungeon-vending-machine.html 의 실제 수치 스냅샷. backend/DungeonVM.Core/Balance/DefaultBalance.json 스키마와 동일한 형식이며, DungeonVM.Simulator --balance 옵션으로 그대로 로드 가능. 2026-09-20 동기화 작업 직후 기준.",
+  "_meta": "prototype/index.html (구 dungeon-vending-machine.html) 의 실제 수치 스냅샷. backend/DungeonVM.Core/Balance/DefaultBalance.json 스키마와 동일한 형식이며, DungeonVM.Simulator --balance 옵션으로 그대로 로드 가능. 2026-09-20 동기화 작업 직후 기준.",
   "weapons": {
     "maxTier": 15,
     "levelMultipliers": [1.00, 1.35, 1.75, 2.15, 2.55, 2.95, 3.35, 3.75, 4.15, 4.60, 5.30, 6.10, 7.10, 8.30, 10.00],

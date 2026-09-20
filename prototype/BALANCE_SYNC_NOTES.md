@@ -1,6 +1,6 @@
 # 밸런스 동기화 기록 (2026-09-20)
 
-`prototype/dungeon-vending-machine.html`의 수치를 `backend/DungeonVM.Core/Balance/DefaultBalance.json` 기준으로 동기화한 작업 기록.
+`prototype/index.html`(구 `dungeon-vending-machine.html`, Vercel 정적 배포를 위해 리네임)의 수치를 `backend/DungeonVM.Core/Balance/DefaultBalance.json` 기준으로 동기화한 작업 기록.
 백엔드 파일은 수정하지 않았음 — 전부 HTML 쪽만 변경.
 
 ## 사용법
