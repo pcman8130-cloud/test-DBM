@@ -174,13 +174,15 @@ internal static class Program
             while (outcome == RunEndReason.InProgress && elapsed < MaxSecondsPerStage)
             {
                 bot.OnCombatTick(ctx);
-                outcome = battle.Tick(TickSeconds, meta.RetireSpeedMultiplier);
+                outcome = battle.Tick(TickSeconds, meta.RetireSpeedMultiplier + stageLoop.RelicRetireSpeedBonus);
                 elapsed += TickSeconds;
             }
 
             if (outcome == RunEndReason.Victory)
             {
-                stageLoop.CompleteStageVictory(rng);
+                var rewardChoice = stageLoop.CompleteStageVictory(rng);
+                int selected = bot.ChooseStageReward(ctx, rewardChoice);
+                stageLoop.ResolveStageRewardChoice(rewardChoice, selected, rng);
                 continue;
             }
 

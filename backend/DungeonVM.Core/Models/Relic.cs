@@ -8,20 +8,18 @@ public enum RelicEffect
     DodgeChanceBoost,      // 전 캐릭터 회피율 증가
 }
 
-/// <summary>슬레이 더 스파이어 형태의 런 전역 패시브 유물. 보석으로 구매.</summary>
+/// <summary>슬레이 더 스파이어 형태의 런 전역 패시브 유물. 구매 없이 스테이지 보상의 '상자' 선택지에서만 드롭된다.</summary>
 public sealed class Relic
 {
     public Guid Id { get; } = Guid.NewGuid();
     public string Name { get; }
     public RelicEffect Effect { get; }
     public double Magnitude { get; }
-    public int GemCost { get; }
 
-    public Relic(string name, RelicEffect effect, double magnitude, int gemCost)
+    public Relic(string name, RelicEffect effect, double magnitude)
     {
         Name = name;
         Effect = effect;
         Magnitude = magnitude;
-        GemCost = gemCost;
     }
 }

@@ -25,12 +25,14 @@ python xlsx_to_balance_json.py template balance.xlsx
 
 | 시트 | 내용 |
 |---|---|
-| `Scalars` | `섹션.필드명` 형태의 Key와 Value 두 컬럼. 대부분의 수치(자판기 뽑기 확률, 웨이브 스케일링, 영혼 스킬트리 등)가 여기 있습니다. |
+| `Scalars` | `섹션.필드명` 형태의 Key와 Value 두 컬럼. 대부분의 수치(자판기 뽑기 확률, 웨이브 스케일링, 영혼 스킬트리, 속성 룬 효과, 스테이지 선택보상 등)가 여기 있습니다. |
 | `Weapons` | 무기 6종의 기초 데미지/공속/체력/특수치 |
 | `ArmorRollRanges` | 방어구 등급별(Common~Legendary) 랜덤 스탯 최소/최대값 |
 | `ArmorMarketValues` | 방어구 등급별 판매 시세 |
 | `VendingMachineUpgradeCosts` | 자판기 업그레이드 레벨별 골드 비용 |
 | `MergeGridUnlockCosts` | 머지 그리드 블록 해금 골드 비용 |
+| `WeaponLevelMultipliers` | 무기 레벨(1~15)별 데미지/힐 성장 배율 |
+| `CharacterSlotUnlockCosts` | 캐릭터 슬롯(3번째~최대)별 해금 골드 비용 |
 
 ### 2) 엑셀 수정 후 JSON으로 변환
 

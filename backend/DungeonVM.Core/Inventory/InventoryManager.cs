@@ -8,7 +8,7 @@ public sealed class InventoryManager
 {
     public MergeGrid Grid { get; } = new();
 
-    /// <summary>보스/일반 스테이지에서 드롭하거나 보석으로 구매한 룬의 전용 보관함(그리드와 별개, 공간 제한 없음).</summary>
+    /// <summary>스테이지 클리어 선택보상의 '상자' 결과로 획득한 룬의 전용 보관함(그리드와 별개, 공간 제한 없음).</summary>
     public List<Rune> RuneStorage { get; } = new();
 
     /// <summary>뽑은 무기를 그리드에 넣는다. 자리가 없으면 false(뽑기 자체가 막히거나 판매를 유도해야 함).</summary>

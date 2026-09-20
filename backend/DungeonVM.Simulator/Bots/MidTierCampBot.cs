@@ -1,5 +1,6 @@
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
+using DungeonVM.Core.Systems;
 
 namespace DungeonVM.Simulator.Bots;
 
@@ -62,4 +63,7 @@ public sealed class MidTierCampBot : IBot
         bool inCampZone = a.Tier is >= CampZoneMinTier and <= CampZoneMaxTier;
         return !(hasRune && inCampZone);
     }
+
+    /// <summary>항상 상자 — 룬 확보 자체가 이 봇의 정체성(소켓해서 안주 구간을 방어)이므로 룬/유물 상자를 최우선한다.</summary>
+    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.Box);
 }

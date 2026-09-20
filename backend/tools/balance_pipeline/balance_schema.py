@@ -97,11 +97,35 @@ SCALAR_FIELDS: list[ScalarField] = [
     ScalarField("MergeGrid", "TotalCells", int, "머지 그리드 총 칸 수(무기+방어구 공유)"),
     ScalarField("MergeGrid", "CellsPerUnlock", int, "그리드 해금 단위(칸)"),
 
-    ScalarField("Rune", "NormalStageDropChance", float, "일반 스테이지 클리어 시 룬 드롭 확률"),
-    ScalarField("Rune", "BossStageDropChance", float, "중간/대형 보스 스테이지 클리어 시 룬 드롭 확률"),
-
     ScalarField("CharacterSlots", "StartingSlots", int, "런 시작 시 기본 캐릭터 인원"),
     ScalarField("CharacterSlots", "MaxSlots", int, "골드로 해금 가능한 최대 캐릭터 인원"),
+
+    ScalarField("ElementEffects", "FireBurnDamagePerSecond", float, "불: 화상 초당 도트 데미지"),
+    ScalarField("ElementEffects", "FireBurnDurationSeconds", float, "불: 화상 지속시간(초)"),
+    ScalarField("ElementEffects", "FireSplashRatio", float, "불: 다른 생존 몬스터에게 전파되는 화상 피해 비율(범위 도트)"),
+    ScalarField("ElementEffects", "IceSlowRatio", float, "얼음: 피격 대상 공격속도 감소율(0~1)"),
+    ScalarField("ElementEffects", "IceSlowDurationSeconds", float, "얼음: 둔화 지속시간(초)"),
+    ScalarField("ElementEffects", "PoisonDamagePerStackPerSecond", float, "독: 중첩 1개당 초당 도트 데미지"),
+    ScalarField("ElementEffects", "PoisonDurationSeconds", float, "독: 중첩 유지/갱신 지속시간(초)"),
+    ScalarField("ElementEffects", "PoisonMaxStacks", int, "독: 최대 중첩 수"),
+    ScalarField("ElementEffects", "LightningChainDamageRatio", float, "전기: 원 피해량 대비 다른 몬스터 1명에게 전이되는 피해 비율"),
+    ScalarField("ElementEffects", "HolyLifestealRatio", float, "빛: 원 피해량 대비 공격자 회복 비율(흡혈)"),
+    ScalarField("ElementEffects", "DarkBonusDamageRatio", float, "어둠: 원 피해량 대비 같은 대상에게 추가되는 즉시 피해 비율"),
+
+    ScalarField("StageRewardChoice", "RegularGoldOption", int, "기본 스테이지 선택보상 ①: 골드"),
+    ScalarField("StageRewardChoice", "RegularAttackBoost", float, "기본 스테이지 선택보상 ②: 공격력 영구증가"),
+    ScalarField("StageRewardChoice", "RegularHealthBoost", float, "기본 스테이지 선택보상 ②: 체력 영구증가"),
+    ScalarField("StageRewardChoice", "RegularBoxRuneChance", float, "기본 스테이지 선택보상 ③ 상자: 룬 확률(나머지는 유물)"),
+    ScalarField("StageRewardChoice", "MidBossBaseSoulsBonus", int, "중간보스(ST 5·15·25) 기본보상에 추가되는 영혼"),
+    ScalarField("StageRewardChoice", "MidBossGoldOption", int, "중간보스 선택보상 ①: 골드(강화)"),
+    ScalarField("StageRewardChoice", "MidBossAttackBoost", float, "중간보스 선택보상 ②: 공격력 영구증가(강화)"),
+    ScalarField("StageRewardChoice", "MidBossHealthBoost", float, "중간보스 선택보상 ②: 체력 영구증가(강화)"),
+    ScalarField("StageRewardChoice", "MidBossBoxRuneChance", float, "중간보스 선택보상 ③ 상자: 룬 확률(나머지는 유물)"),
+    ScalarField("StageRewardChoice", "BossBaseSoulsBonus", int, "보스(ST 10·20·30) 기본보상에 추가되는 영혼"),
+    ScalarField("StageRewardChoice", "BossGoldOption", int, "보스 선택보상 ①: 골드(더 강화)"),
+    ScalarField("StageRewardChoice", "BossAttackBoost", float, "보스 선택보상 ②: 공격력 영구증가(더 강화)"),
+    ScalarField("StageRewardChoice", "BossHealthBoost", float, "보스 선택보상 ②: 체력 영구증가(더 강화)"),
+    ScalarField("StageRewardChoice", "BossBoxRuneChance", float, "보스 선택보상 ③ 상자: 룬 확률(나머지는 유물)"),
 ]
 
 SCALAR_FIELDS_BY_KEY: dict[str, ScalarField] = {f.key: f for f in SCALAR_FIELDS}

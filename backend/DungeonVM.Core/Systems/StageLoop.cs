@@ -11,12 +11,12 @@ public sealed class StageLoop
 {
     private static readonly ElementType[] RuneElements =
     {
-        ElementType.Fire, ElementType.Ice, ElementType.Lightning, ElementType.Holy, ElementType.Dark,
+        ElementType.Fire, ElementType.Ice, ElementType.Lightning, ElementType.Holy, ElementType.Dark, ElementType.Poison,
     };
 
     private static StageLoopBalanceSection Config => BalanceProvider.Current.StageLoop;
     private static CharacterSlotBalanceSection SlotConfig => BalanceProvider.Current.CharacterSlots;
-    private static RuneBalanceSection RuneConfig => BalanceProvider.Current.Rune;
+    private static StageRewardChoiceBalanceSection RewardConfig => BalanceProvider.Current.StageRewardChoice;
 
     public static int MaxStage => Config.MaxStage;
 
@@ -30,6 +30,13 @@ public sealed class StageLoop
 
     public int SoulsEarnedThisRun { get; private set; }
     public bool IsRunComplete => CurrentStage > MaxStage;
+
+    /// <summary>이번 런에서 상자 선택보상으로 획득한 유물 목록(패시브 효과는 획득 즉시 적용됨).</summary>
+    public List<Relic> Relics { get; } = new();
+
+    public double RelicRetireSpeedBonus { get; private set; }
+    public double RelicGoldGainBonus { get; private set; }
+    public double RelicUpgradeDiscountRatio { get; private set; }
 
     public StageLoop(CurrencyManager currency, InventoryManager inventory, List<Character> party)
     {
@@ -45,29 +52,112 @@ public sealed class StageLoop
         return WaveEngine.GenerateWave(CurrentStage, rng);
     }
 
-    /// <summary>스테이지 클리어 처리: 보상 지급(+확률적 룬 드롭), 전원 자동 부활, 다음 스테이지로 진행 후 정비 페이즈 전환.</summary>
-    public void CompleteStageVictory(Random rng)
+    /// <summary>
+    /// 스테이지 클리어 처리: 등급(기본/중간보스/보스)에 따른 기본보상을 즉시 지급하고, 전원 자동 부활 후
+    /// 다음 스테이지로 진행한다. 이어서 골라야 할 3개 선택보상(골드/팀 능력치 영구증가/상자)을 반환하므로,
+    /// 호출자(봇 정책 또는 Unity UI)가 하나를 골라 ResolveStageRewardChoice로 확정해야 한다.
+    /// </summary>
+    public StageRewardChoice CompleteStageVictory(Random rng)
     {
         var config = Config;
-        int goldReward = config.VictoryGoldBase + CurrentStage * config.VictoryGoldPerStage;
-        int soulsReward = config.VictorySoulsBase + CurrentStage / config.VictorySoulsStageDivisor;
+        var rewardConfig = RewardConfig;
 
-        Currency.Add(CurrencyType.Gold, goldReward);
+        int goldReward = config.VictoryGoldBase + CurrentStage * config.VictoryGoldPerStage;
+        Currency.Add(CurrencyType.Gold, (int)(goldReward * (1 + RelicGoldGainBonus)));
+
+        var tier = WaveEngine.IsBigBossStage(CurrentStage) ? StageTier.Boss
+            : WaveEngine.IsMidBossStage(CurrentStage) ? StageTier.MidBoss
+            : StageTier.Regular;
+
+        int soulsReward = tier switch
+        {
+            StageTier.Boss => rewardConfig.BossBaseSoulsBonus,
+            StageTier.MidBoss => rewardConfig.MidBossBaseSoulsBonus,
+            _ => 0, // 기본 스테이지는 영혼을 주지 않는다(영혼은 중간보스/보스 기본보상 전용).
+        };
         SoulsEarnedThisRun += soulsReward;
 
-        bool isBossStage = WaveEngine.IsMidBossStage(CurrentStage) || WaveEngine.IsBigBossStage(CurrentStage);
-        double dropChance = isBossStage ? RuneConfig.BossStageDropChance : RuneConfig.NormalStageDropChance;
-        if (rng.NextDouble() < dropChance)
-        {
-            var element = RuneElements[rng.Next(RuneElements.Length)];
-            Inventory.ReceiveRune(new Rune(element));
-        }
+        var options = BuildRewardOptions(tier, rewardConfig);
 
         foreach (var c in Party)
             c.ReviveNow();
 
         Phase = StagePhase.Maintenance;
         CurrentStage++;
+
+        return new StageRewardChoice(tier, options);
+    }
+
+    private static List<StageRewardOption> BuildRewardOptions(StageTier tier, StageRewardChoiceBalanceSection cfg) => tier switch
+    {
+        StageTier.Boss => new List<StageRewardOption>
+        {
+            new(StageRewardOptionType.Gold, GoldAmount: cfg.BossGoldOption),
+            new(StageRewardOptionType.StatBoost, AttackBonus: cfg.BossAttackBoost, HealthBonus: cfg.BossHealthBoost),
+            new(StageRewardOptionType.Box, RuneChance: cfg.BossBoxRuneChance),
+        },
+        StageTier.MidBoss => new List<StageRewardOption>
+        {
+            new(StageRewardOptionType.Gold, GoldAmount: cfg.MidBossGoldOption),
+            new(StageRewardOptionType.StatBoost, AttackBonus: cfg.MidBossAttackBoost, HealthBonus: cfg.MidBossHealthBoost),
+            new(StageRewardOptionType.Box, RuneChance: cfg.MidBossBoxRuneChance),
+        },
+        _ => new List<StageRewardOption>
+        {
+            new(StageRewardOptionType.Gold, GoldAmount: cfg.RegularGoldOption),
+            new(StageRewardOptionType.StatBoost, AttackBonus: cfg.RegularAttackBoost, HealthBonus: cfg.RegularHealthBoost),
+            new(StageRewardOptionType.Box, RuneChance: cfg.RegularBoxRuneChance),
+        },
+    };
+
+    /// <summary>CompleteStageVictory가 반환한 선택지 중 selectedIndex번째를 확정 적용한다.</summary>
+    public void ResolveStageRewardChoice(StageRewardChoice choice, int selectedIndex, Random rng)
+    {
+        var option = choice.Options[selectedIndex];
+        switch (option.Type)
+        {
+            case StageRewardOptionType.Gold:
+                Currency.Add(CurrencyType.Gold, (int)(option.GoldAmount * (1 + RelicGoldGainBonus)));
+                break;
+
+            case StageRewardOptionType.StatBoost:
+                foreach (var c in Party)
+                    c.AddRunBonus(option.AttackBonus, option.HealthBonus);
+                break;
+
+            case StageRewardOptionType.Box:
+                if (rng.NextDouble() < option.RuneChance)
+                {
+                    var element = RuneElements[rng.Next(RuneElements.Length)];
+                    Inventory.ReceiveRune(new Rune(element));
+                }
+                else
+                {
+                    ApplyRelic(RelicCatalog.RollRandom(rng));
+                }
+                break;
+        }
+    }
+
+    private void ApplyRelic(Relic relic)
+    {
+        Relics.Add(relic);
+        switch (relic.Effect)
+        {
+            case RelicEffect.RetireTimeReduction:
+                RelicRetireSpeedBonus += relic.Magnitude;
+                break;
+            case RelicEffect.GoldGainBoost:
+                RelicGoldGainBonus += relic.Magnitude;
+                break;
+            case RelicEffect.VendingUpgradeDiscount:
+                RelicUpgradeDiscountRatio = Math.Min(0.9, RelicUpgradeDiscountRatio + relic.Magnitude);
+                break;
+            case RelicEffect.DodgeChanceBoost:
+                foreach (var c in Party)
+                    c.AddRelicDodgeBonus(relic.Magnitude);
+                break;
+        }
     }
 
     public bool CanUnlockCharacterSlot => Party.Count < SlotConfig.MaxSlots;

@@ -65,7 +65,8 @@ public sealed class BotContext
     public bool TryUpgradeAttack()
     {
         if (!Machine.CanUpgradeAttack) return false;
-        if (!Currency.TrySpend(CurrencyType.Gold, Machine.AttackUpgradeCost)) return false;
+        int cost = (int)(Machine.AttackUpgradeCost * (1 - StageLoop.RelicUpgradeDiscountRatio));
+        if (!Currency.TrySpend(CurrencyType.Gold, cost)) return false;
         Machine.UpgradeAttackLevel();
         return true;
     }
@@ -73,7 +74,8 @@ public sealed class BotContext
     public bool TryUpgradeDefense()
     {
         if (!Machine.CanUpgradeDefense) return false;
-        if (!Currency.TrySpend(CurrencyType.Gold, Machine.DefenseUpgradeCost)) return false;
+        int cost = (int)(Machine.DefenseUpgradeCost * (1 - StageLoop.RelicUpgradeDiscountRatio));
+        if (!Currency.TrySpend(CurrencyType.Gold, cost)) return false;
         Machine.UpgradeDefenseLevel();
         return true;
     }

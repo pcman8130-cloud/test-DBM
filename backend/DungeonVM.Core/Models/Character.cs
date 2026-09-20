@@ -9,6 +9,9 @@ public sealed class Character
     private static CharacterBalanceSection Config => BalanceProvider.Current.Character;
 
     private readonly double _metaBaseHealthBonus;
+    private double _runBonusAttack;
+    private double _runBonusHealth;
+    private double _relicDodgeBonus;
 
     public Guid Id { get; } = Guid.NewGuid();
     public string Name { get; }
@@ -26,10 +29,10 @@ public sealed class Character
         CurrentHealth = MaxHealth;
     }
 
-    public double MaxHealth => Config.BaseHealth + _metaBaseHealthBonus + (EquippedWeapon?.BonusHealth ?? 0) + (EquippedArmor?.BonusHealth ?? 0);
-    public double AttackDamage => EquippedWeapon?.Damage ?? 0;
+    public double MaxHealth => Config.BaseHealth + _metaBaseHealthBonus + _runBonusHealth + (EquippedWeapon?.BonusHealth ?? 0) + (EquippedArmor?.BonusHealth ?? 0);
+    public double AttackDamage => (EquippedWeapon?.Damage ?? 0) + _runBonusAttack;
     public double AttacksPerSecond => (EquippedWeapon?.AttacksPerSecond ?? 0) * (1 + (EquippedArmor?.AttackSpeedBonus ?? 0));
-    public double DodgeChance => EquippedArmor?.DodgeChance ?? 0;
+    public double DodgeChance => Math.Min(BalanceProvider.Current.Armor.DodgeClampMax, (EquippedArmor?.DodgeChance ?? 0) + _relicDodgeBonus);
     public RowPosition Row => EquippedWeapon is null ? RowPosition.Front : EquippedWeapon.Row;
     public ElementType Element => EquippedWeapon?.Element ?? ElementType.None;
     public bool IsAlive => !IsRetired && CurrentHealth > 0;
@@ -74,6 +77,17 @@ public sealed class Character
         if (!IsAlive) return;
         CurrentHealth = Math.Min(MaxHealth, CurrentHealth + amount);
     }
+
+    /// <summary>스테이지 보상의 '팀 능력치 영구증가' 선택지 적용. 이번 런 동안 유지되며(영혼 스킬트리와 별개), 체력 증가분만큼 즉시 회복한다.</summary>
+    public void AddRunBonus(double attackBonus, double healthBonus)
+    {
+        _runBonusAttack += attackBonus;
+        _runBonusHealth += healthBonus;
+        CurrentHealth = Math.Min(MaxHealth, CurrentHealth + healthBonus);
+    }
+
+    /// <summary>DodgeChanceBoost 유물 적용.</summary>
+    public void AddRelicDodgeBonus(double amount) => _relicDodgeBonus += amount;
 
     private void Retire()
     {

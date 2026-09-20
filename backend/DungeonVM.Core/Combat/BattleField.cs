@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
 
@@ -18,6 +19,13 @@ public sealed class BattleField
 
     private readonly Dictionary<Guid, double> _characterCooldowns = new();
     private readonly Dictionary<Guid, double> _monsterCooldowns = new();
+
+    // 속성 룬 적중 효과의 몬스터별 상태(화상/독/둔화). Monster 자체는 불변으로 유지하고 전투 중 상태만 여기서 추적한다.
+    private readonly Dictionary<Guid, double> _monsterBurnDps = new();
+    private readonly Dictionary<Guid, double> _monsterBurnRemaining = new();
+    private readonly Dictionary<Guid, int> _monsterPoisonStacks = new();
+    private readonly Dictionary<Guid, double> _monsterPoisonRemaining = new();
+    private readonly Dictionary<Guid, double> _monsterSlowRemaining = new();
 
     public double ElapsedSeconds { get; private set; }
 
@@ -69,8 +77,12 @@ public sealed class BattleField
 
                 double dmg = DamageCalculator.ComputeDamage(c.AttackDamage, c.Element, target.Element);
                 target.TakeDamage(dmg);
+                ApplyElementEffect(c, target, dmg);
             }
         }
+
+        // 1.5) 화상/독 도트 및 둔화 지속시간 진행. 도트 피해로 인한 처치도 이번 틱의 웨이브 클리어 판정에 반영한다.
+        TickStatusEffects(dt);
 
         if (WaveCleared)
             return RunEndReason.Victory;
@@ -84,7 +96,8 @@ public sealed class BattleField
             if (monsterTarget is null) break; // 방어선이 없다 = 이미 전멸, 계산할 대상이 없다.
 
             _monsterCooldowns[m.Id] += dt;
-            double interval = m.AttacksPerSecond > 0 ? 1.0 / m.AttacksPerSecond : double.MaxValue;
+            double effectiveAps = EffectiveAttacksPerSecond(m);
+            double interval = effectiveAps > 0 ? 1.0 / effectiveAps : double.MaxValue;
 
             while (_monsterCooldowns[m.Id] >= interval)
             {
@@ -104,5 +117,101 @@ public sealed class BattleField
             return RunEndReason.PartyWiped;
 
         return RunEndReason.InProgress;
+    }
+
+    private double EffectiveAttacksPerSecond(Monster m)
+    {
+        if (_monsterSlowRemaining.GetValueOrDefault(m.Id) <= 0)
+            return m.AttacksPerSecond;
+
+        double slowMultiplier = BalanceProvider.Current.ElementEffects.IceSlowRatio;
+        return m.AttacksPerSecond * (1 - slowMultiplier);
+    }
+
+    /// <summary>
+    /// 공격한 캐릭터의 무기에 소켓된 룬 속성에 따라 부가 효과를 적용한다(속성 상성 배율과는 별개로 항상 발동).
+    /// 불=화상(범위 도트), 얼음=둔화, 독=중첩 도트, 전기=전이 피해, 빛=흡혈, 어둠=추가 피해.
+    /// </summary>
+    private void ApplyElementEffect(Character attacker, Monster target, double dmg)
+    {
+        var element = attacker.Element;
+        if (element == ElementType.None) return;
+
+        var cfg = BalanceProvider.Current.ElementEffects;
+
+        switch (element)
+        {
+            case ElementType.Fire:
+                SetBurn(target.Id, cfg.FireBurnDamagePerSecond, cfg.FireBurnDurationSeconds);
+                if (cfg.FireSplashRatio > 0)
+                {
+                    foreach (var other in _monsters)
+                    {
+                        if (other.Id == target.Id || !other.IsAlive) continue;
+                        SetBurn(other.Id, cfg.FireBurnDamagePerSecond * cfg.FireSplashRatio, cfg.FireBurnDurationSeconds);
+                    }
+                }
+                break;
+
+            case ElementType.Ice:
+                _monsterSlowRemaining[target.Id] = cfg.IceSlowDurationSeconds;
+                break;
+
+            case ElementType.Poison:
+                int stacks = Math.Min(cfg.PoisonMaxStacks, _monsterPoisonStacks.GetValueOrDefault(target.Id) + 1);
+                _monsterPoisonStacks[target.Id] = stacks;
+                _monsterPoisonRemaining[target.Id] = cfg.PoisonDurationSeconds;
+                break;
+
+            case ElementType.Lightning:
+                var chainCandidates = _monsters.Where(m => m.IsAlive && m.Id != target.Id).ToList();
+                if (chainCandidates.Count > 0)
+                {
+                    var chainTarget = chainCandidates[_rng.Next(chainCandidates.Count)];
+                    chainTarget.TakeDamage(dmg * cfg.LightningChainDamageRatio);
+                }
+                break;
+
+            case ElementType.Holy:
+                attacker.Heal(dmg * cfg.HolyLifestealRatio);
+                break;
+
+            case ElementType.Dark:
+                target.TakeDamage(dmg * cfg.DarkBonusDamageRatio);
+                break;
+        }
+    }
+
+    private void SetBurn(Guid monsterId, double damagePerSecond, double durationSeconds)
+    {
+        _monsterBurnDps[monsterId] = Math.Max(_monsterBurnDps.GetValueOrDefault(monsterId), damagePerSecond);
+        _monsterBurnRemaining[monsterId] = Math.Max(_monsterBurnRemaining.GetValueOrDefault(monsterId), durationSeconds);
+    }
+
+    private void TickStatusEffects(double dt)
+    {
+        var cfg = BalanceProvider.Current.ElementEffects;
+
+        foreach (var m in _monsters)
+        {
+            if (!m.IsAlive) continue;
+
+            if (_monsterBurnRemaining.GetValueOrDefault(m.Id) > 0)
+            {
+                m.TakeDamage(_monsterBurnDps[m.Id] * dt);
+                _monsterBurnRemaining[m.Id] -= dt;
+            }
+
+            if (_monsterPoisonRemaining.GetValueOrDefault(m.Id) > 0)
+            {
+                m.TakeDamage(cfg.PoisonDamagePerStackPerSecond * _monsterPoisonStacks.GetValueOrDefault(m.Id) * dt);
+                _monsterPoisonRemaining[m.Id] -= dt;
+                if (_monsterPoisonRemaining[m.Id] <= 0)
+                    _monsterPoisonStacks[m.Id] = 0;
+            }
+
+            if (_monsterSlowRemaining.GetValueOrDefault(m.Id) > 0)
+                _monsterSlowRemaining[m.Id] -= dt;
+        }
     }
 }

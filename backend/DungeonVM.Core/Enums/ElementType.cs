@@ -9,4 +9,5 @@ public enum ElementType
     Lightning,
     Holy,
     Dark,
+    Poison,
 }

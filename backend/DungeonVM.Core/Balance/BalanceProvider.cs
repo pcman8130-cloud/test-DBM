@@ -59,8 +59,9 @@ public static class BalanceProvider
                 case "character": merged.Character = Deserialize<CharacterBalanceSection>(raw, merged.Character); break;
                 case "combat": merged.Combat = Deserialize<CombatBalanceSection>(raw, merged.Combat); break;
                 case "mergegrid": merged.MergeGrid = Deserialize<MergeGridBalanceSection>(raw, merged.MergeGrid); break;
-                case "rune": merged.Rune = Deserialize<RuneBalanceSection>(raw, merged.Rune); break;
                 case "characterslots": merged.CharacterSlots = Deserialize<CharacterSlotBalanceSection>(raw, merged.CharacterSlots); break;
+                case "elementeffects": merged.ElementEffects = Deserialize<ElementEffectsBalanceSection>(raw, merged.ElementEffects); break;
+                case "stagerewardchoice": merged.StageRewardChoice = Deserialize<StageRewardChoiceBalanceSection>(raw, merged.StageRewardChoice); break;
                 // 알 수 없는 최상위 키는 무시한다(예: 파이프라인 메타데이터 필드).
             }
         }

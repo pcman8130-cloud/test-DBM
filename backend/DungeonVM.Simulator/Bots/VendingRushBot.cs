@@ -1,4 +1,5 @@
 using DungeonVM.Core.Enums;
+using DungeonVM.Core.Systems;
 
 namespace DungeonVM.Simulator.Bots;
 
@@ -54,4 +55,7 @@ public sealed class VendingRushBot : IBot
             if (ctx.TryEquipFromGrid(character))
                 _committedType[character.Id] = character.EquippedWeapon!.Type;
     }
+
+    /// <summary>항상 팀 능력치 영구증가 — 가로 확장(로스터/업그레이드)에 어울리는 확정적·누적형 성장을 선호한다.</summary>
+    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.StatBoost);
 }

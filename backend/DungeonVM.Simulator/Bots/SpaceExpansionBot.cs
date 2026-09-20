@@ -1,3 +1,6 @@
+using DungeonVM.Core.Enums;
+using DungeonVM.Core.Systems;
+
 namespace DungeonVM.Simulator.Bots;
 
 /// <summary>
@@ -49,4 +52,7 @@ public sealed class SpaceExpansionBot : IBot
         foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is null))
             ctx.TryEquipFromGrid(character);
     }
+
+    /// <summary>항상 골드 — 그리드 해금과 끝없는 재뽑기에 쏟아부을 현금이 최우선이다.</summary>
+    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.Gold);
 }

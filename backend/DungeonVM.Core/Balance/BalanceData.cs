@@ -17,8 +17,9 @@ public sealed class BalanceData
     public CharacterBalanceSection Character { get; set; } = new();
     public CombatBalanceSection Combat { get; set; } = new();
     public MergeGridBalanceSection MergeGrid { get; set; } = new();
-    public RuneBalanceSection Rune { get; set; } = new();
     public CharacterSlotBalanceSection CharacterSlots { get; set; } = new();
+    public ElementEffectsBalanceSection ElementEffects { get; set; } = new();
+    public StageRewardChoiceBalanceSection StageRewardChoice { get; set; } = new();
 }
 
 public sealed class WeaponStatEntry
@@ -147,15 +148,6 @@ public sealed class MergeGridBalanceSection
     public List<int> UnlockGoldCosts { get; set; } = new();
 }
 
-public sealed class RuneBalanceSection
-{
-    /// <summary>일반 스테이지 클리어 시 룬이 드롭될 확률.</summary>
-    public double NormalStageDropChance { get; set; }
-
-    /// <summary>중간/대형 보스 스테이지 클리어 시 룬이 드롭될 확률.</summary>
-    public double BossStageDropChance { get; set; }
-}
-
 public sealed class CharacterSlotBalanceSection
 {
     public int StartingSlots { get; set; } = 2;
@@ -163,4 +155,56 @@ public sealed class CharacterSlotBalanceSection
 
     /// <summary>3번째~MaxSlots번째 슬롯 해금 골드 비용 (길이 = MaxSlots - StartingSlots).</summary>
     public List<int> UnlockGoldCosts { get; set; } = new();
+}
+
+/// <summary>무기에 소켓된 속성 룬이 적중 시 발동하는 원소별 고유 효과. 정확한 수치는 밸런스 테스트로 확정 예정.</summary>
+public sealed class ElementEffectsBalanceSection
+{
+    /// <summary>불: 화상(초당 도트 데미지, 지속시간), 다른 생존 몬스터에게도 SplashRatio 비율로 화상 전파(범위 도트).</summary>
+    public double FireBurnDamagePerSecond { get; set; }
+    public double FireBurnDurationSeconds { get; set; }
+    public double FireSplashRatio { get; set; }
+
+    /// <summary>얼음: 피격 대상의 공격속도를 일정 시간 SlowRatio 비율만큼 감소(둔화).</summary>
+    public double IceSlowRatio { get; set; }
+    public double IceSlowDurationSeconds { get; set; }
+
+    /// <summary>독: 적중마다 중첩(최대 MaxStacks)되는 도트. 중첩 수에 비례해 초당 피해가 커진다.</summary>
+    public double PoisonDamagePerStackPerSecond { get; set; }
+    public double PoisonDurationSeconds { get; set; }
+    public int PoisonMaxStacks { get; set; }
+
+    /// <summary>전기: 원 피해량의 이 비율만큼 다른 생존 몬스터 1명에게 즉시 전이 피해.</summary>
+    public double LightningChainDamageRatio { get; set; }
+
+    /// <summary>빛: 원 피해량의 이 비율만큼 공격한 캐릭터를 즉시 회복(흡혈).</summary>
+    public double HolyLifestealRatio { get; set; }
+
+    /// <summary>어둠: 원 피해량의 이 비율만큼 같은 대상에게 추가 즉시 피해.</summary>
+    public double DarkBonusDamageRatio { get; set; }
+}
+
+/// <summary>
+/// 스테이지 클리어 시 기본보상 위에 추가로 제공되는 3개 선택보상(골드/팀 능력치 영구증가/상자)의 등급별 수치.
+/// 중간보스(ST 5·15·25)·보스(ST 10·20·30)로 갈수록 강화된다. 상자는 RuneChance 확률로 룬, 나머지는 유물이 나온다.
+/// </summary>
+public sealed class StageRewardChoiceBalanceSection
+{
+    public int RegularGoldOption { get; set; }
+    public double RegularAttackBoost { get; set; }
+    public double RegularHealthBoost { get; set; }
+    public double RegularBoxRuneChance { get; set; }
+
+    /// <summary>중간보스 기본보상에 추가되는 영혼(정규 스테이지는 영혼을 주지 않는다).</summary>
+    public int MidBossBaseSoulsBonus { get; set; }
+    public int MidBossGoldOption { get; set; }
+    public double MidBossAttackBoost { get; set; }
+    public double MidBossHealthBoost { get; set; }
+    public double MidBossBoxRuneChance { get; set; }
+
+    public int BossBaseSoulsBonus { get; set; }
+    public int BossGoldOption { get; set; }
+    public double BossAttackBoost { get; set; }
+    public double BossHealthBoost { get; set; }
+    public double BossBoxRuneChance { get; set; }
 }

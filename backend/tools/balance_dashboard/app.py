@@ -49,8 +49,9 @@ SECTION_LABELS = {
     "Character": "캐릭터",
     "Combat": "전투 - 속성 상성",
     "MergeGrid": "머지 그리드",
-    "Rune": "속성 룬",
     "CharacterSlots": "캐릭터 슬롯",
+    "ElementEffects": "속성 룬 효과",
+    "StageRewardChoice": "스테이지 선택보상",
 }
 
 BOT_ORDER = ["SpaceExpansion", "VendingRush", "MidTierCamp"]

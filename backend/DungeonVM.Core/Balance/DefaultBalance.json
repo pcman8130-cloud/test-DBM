@@ -92,13 +92,38 @@
     "cellsPerUnlock": 4,
     "unlockGoldCosts": [100, 250, 500]
   },
-  "rune": {
-    "normalStageDropChance": 0.08,
-    "bossStageDropChance": 0.6
-  },
   "characterSlots": {
     "startingSlots": 2,
     "maxSlots": 5,
     "unlockGoldCosts": [300, 700, 1400, 3000]
+  },
+  "elementEffects": {
+    "fireBurnDamagePerSecond": 3,
+    "fireBurnDurationSeconds": 4,
+    "fireSplashRatio": 0.4,
+    "iceSlowRatio": 0.3,
+    "iceSlowDurationSeconds": 3,
+    "poisonDamagePerStackPerSecond": 1.5,
+    "poisonDurationSeconds": 5,
+    "poisonMaxStacks": 5,
+    "lightningChainDamageRatio": 0.5,
+    "holyLifestealRatio": 0.2,
+    "darkBonusDamageRatio": 0.15
+  },
+  "stageRewardChoice": {
+    "regularGoldOption": 30,
+    "regularAttackBoost": 3,
+    "regularHealthBoost": 5,
+    "regularBoxRuneChance": 0.9,
+    "midBossBaseSoulsBonus": 5,
+    "midBossGoldOption": 80,
+    "midBossAttackBoost": 8,
+    "midBossHealthBoost": 11,
+    "midBossBoxRuneChance": 0.7,
+    "bossBaseSoulsBonus": 12,
+    "bossGoldOption": 150,
+    "bossAttackBoost": 15,
+    "bossHealthBoost": 20,
+    "bossBoxRuneChance": 0.5
   }
 }
