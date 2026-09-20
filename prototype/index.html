@@ -1086,9 +1086,9 @@
     DIFFICULTY_GATES.forEach(function(g){ if(stage>=g.stage) scale *= g.mult; });
     return scale;
   }
-  // 5/10스테는 게임 최초의 보스라 아직 장비가 약할 때 마주치는 만큼, 전체 보스 곡선과
-  // 별개로 30% 하향 — 15/25(중간보스), 20/30(대형보스)는 그대로 둠.
-  var BOSS_STAGE_OVERRIDES = { 5: 0.7, 10: 0.7 };
+  // 5/10/15/20스테는 전체 보스 곡선(특히 11스테 난이도 게이트 이후)이 과했다는 플레이테스트
+  // 피드백으로 30% 하향. 25/30은 아직 미검증이라 일단 그대로 둠 — 필요하면 여기 값만 추가.
+  var BOSS_STAGE_OVERRIDES = { 5: 0.7, 10: 0.7, 15: 0.7, 20: 0.7 };
   function bossStageMult(stage){ return BOSS_STAGE_OVERRIDES[stage] || 1; }
   function makeWave(stage){
     var scale = scaleAt(stage);
