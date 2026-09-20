@@ -34,11 +34,14 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
 
 - `--summary <경로>`: `summary.json`을 빌드 출력 폴더 대신 지정한 경로에 저장 (외부 도구가 빌드 설정/TFM에
   따라 달라지는 출력 경로를 추측하지 않아도 되게 함)
+- `--progress <경로>`: 실행 도중(10런마다) 진행 상황을 덮어쓰는 JSON 경로. 완료한 런 수/누적 전투·승률/현재
+  처리 중인 봇 등을 담으며, 웹 UI가 이 파일을 폴링해서 실시간 진행률을 보여줄 때 사용
 - `--skip-llm`: LLM 밸런싱 모듈(네트워크 호출) 실행을 건너뜀 — 반복 실행 시 API 비용/지연을 피하고 싶을 때
 
 기획자가 엑셀로 밸런스를 조정해 이 JSON을 만드는 파이프라인은 [`tools/balance_pipeline`](../tools/balance_pipeline)를 참고하세요
 (`convert ... --simulate 500`으로 변환과 재시뮬레이션을 한 번에 실행할 수 있습니다). 슬라이더로 값을 조정하면서
-그래프가 바로 갱신되는 라이브 대시보드는 [`tools/balance_dashboard`](../tools/balance_dashboard)를 참고하세요.
+그래프가 바로 갱신되는 라이브 대시보드는 [`tools/balance_dashboard`](../tools/balance_dashboard)를, 진행 상황과
+스테이지별 결과를 실시간으로 보는 웹 러너는 [`tools/balance_web`](../tools/balance_web)을 참고하세요.
 
 ## 봇 3종 ([`Bots/`](Bots))
 
@@ -57,9 +60,11 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
 1. **콘솔 리포트**: 봇별 승률/평균 도달 스테이지/종료 사유/그리드 병목 강제판매/룬 보존 회피 횟수, 무기 레벨 구간
    분포(1-4/5-9/10-14/15)·방어구 등급별 채택률, LLM 밸런싱 모듈 감지 결과
 2. **`bin/<Config>/net8.0/run_logs.jsonl`**: 런 1건당 1줄 JSON(`RunResult`, `GridBottleneckSells`·`RuneAvoidanceSkips` 포함) — 항상 기록됨
-3. **`bin/<Config>/net8.0/summary.json`**: 콘솔 리포트와 동일한 집계(승률/평균 스테이지/레벨 구간 분포/채택률)를 담은 요약 JSON —
-   대시보드 등 외부 도구가 콘솔 출력을 파싱하지 않고 이 파일만 읽으면 되도록 함
-4. **`bin/<Config>/net8.0/balance_suggestions.json`**: LLM이 제안한 밸런스 조정안(API 키가 설정된 경우에만 생성)
+3. **`bin/<Config>/net8.0/summary.json`**: 콘솔 리포트와 동일한 집계(승률/평균 스테이지/레벨 구간 분포/채택률)에 더해
+   봇별 `stageBreakdown`(스테이지 1~30 각각의 전투/승리 수, 판정 승률, 평균 클리어 시간, 평균 잔여 HP 비율)을 담은
+   요약 JSON — 대시보드/웹 러너 등 외부 도구가 콘솔 출력을 파싱하지 않고 이 파일만 읽으면 되도록 함
+4. **`--progress`로 지정한 경로**: 실행 도중 10런마다 갱신되는 진행 상황 JSON(옵션을 준 경우에만 생성)
+5. **`bin/<Config>/net8.0/balance_suggestions.json`**: LLM이 제안한 밸런스 조정안(API 키가 설정된 경우에만 생성)
 
 ## Supabase 로깅 (선택)
 

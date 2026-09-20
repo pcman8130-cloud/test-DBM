@@ -45,6 +45,7 @@ internal static class Program
         var metaByBot = bots.ToDictionary(b => b.Name, _ => new MetaProgression());
         var metricsByBot = bots.ToDictionary(b => b.Name, _ => new WeaponTierMetrics());
         var collector = new RunLogCollector();
+        var stageAttempts = new StageAttemptCollector();
 
         using var fileSink = new FileRunLogSink(Path.Combine(AppContext.BaseDirectory, "run_logs.jsonl"));
         var supabase = new SupabaseLogger();
@@ -58,6 +59,7 @@ internal static class Program
         var sw = Stopwatch.StartNew();
         int totalRuns = 0;
         int totalTarget = bots.Length * runsPerBot;
+        var completedRunsByBot = bots.ToDictionary(b => b.Name, _ => 0);
 
         foreach (var bot in bots)
         {
@@ -67,7 +69,7 @@ internal static class Program
 
             for (int i = 0; i < runsPerBot; i++)
             {
-                var result = SimulateOneRun(bot, i, rng, meta, metrics);
+                var result = SimulateOneRun(bot, i, rng, meta, metrics, stageAttempts);
                 collector.Add(result);
 
                 await fileSink.LogRunAsync(result);
@@ -76,17 +78,24 @@ internal static class Program
 
                 InvestMetaSouls(meta);
                 totalRuns++;
+                completedRunsByBot[bot.Name]++;
 
                 if (totalRuns % 500 == 0)
                     Console.WriteLine($"  진행: {totalRuns}/{totalTarget} ({sw.Elapsed.TotalSeconds:F1}s)");
+
+                if (parsed.ProgressPath is not null && totalRuns % 10 == 0)
+                    WriteProgress(parsed.ProgressPath, "running", bots, runsPerBot, totalRuns, totalTarget, bot.Name, completedRunsByBot, collector, stageAttempts, sw.Elapsed.TotalSeconds);
             }
         }
 
         sw.Stop();
         Console.WriteLine($"\n총 {totalRuns}회 실행 완료 ({sw.Elapsed.TotalSeconds:F1}s)\n");
 
+        if (parsed.ProgressPath is not null)
+            WriteProgress(parsed.ProgressPath, "done", bots, runsPerBot, totalRuns, totalTarget, bots[^1].Name, completedRunsByBot, collector, stageAttempts, sw.Elapsed.TotalSeconds);
+
         PrintReport(bots, collector, metricsByBot);
-        WriteSummaryJson(bots, collector, metricsByBot, parsed.SummaryPath);
+        WriteSummaryJson(bots, collector, metricsByBot, stageAttempts, parsed.SummaryPath);
 
         if (!parsed.SkipLlm)
             await RunLlmBalancingAsync(metricsByBot);
@@ -94,12 +103,13 @@ internal static class Program
         return 0;
     }
 
-    private sealed record ParsedArgs(int RunsPerBot, string? BalancePath, string? SummaryPath, bool SkipLlm);
+    private sealed record ParsedArgs(int RunsPerBot, string? BalancePath, string? SummaryPath, string? ProgressPath, bool SkipLlm);
 
     /// <summary>
-    /// "[숫자] [--balance &lt;path&gt;] [--summary &lt;path&gt;] [--skip-llm]" 형태를 파싱한다.
+    /// "[숫자] [--balance &lt;path&gt;] [--summary &lt;path&gt;] [--progress &lt;path&gt;] [--skip-llm]" 형태를 파싱한다.
     /// --balance가 없으면 DUNGEONVM_BALANCE_JSON 환경변수를 확인한다.
     /// --summary는 summary.json을 저장할 경로를 직접 지정한다(대시보드 등이 빌드 출력 폴더 경로를 추측하지 않아도 되게).
+    /// --progress는 실행 도중(10런마다) 진행 상황을 덮어쓰는 JSON 경로 — 웹 UI가 폴링해서 실시간 진행률을 보여줄 때 사용.
     /// --skip-llm은 LLM 밸런싱 모듈(네트워크 호출) 실행을 건너뛴다(대시보드처럼 반복 실행 시 API 비용/지연을 피하기 위함).
     /// </summary>
     private static ParsedArgs ParseArgs(string[] args)
@@ -107,6 +117,7 @@ internal static class Program
         int runsPerBot = 1000;
         string? balancePath = null;
         string? summaryPath = null;
+        string? progressPath = null;
         bool skipLlm = false;
         var positional = new List<string>();
 
@@ -124,6 +135,11 @@ internal static class Program
                         throw new ArgumentException("--summary 옵션 뒤에는 저장할 JSON 파일 경로가 와야 합니다.");
                     summaryPath = args[++i];
                     break;
+                case "--progress":
+                    if (i + 1 >= args.Length)
+                        throw new ArgumentException("--progress 옵션 뒤에는 저장할 JSON 파일 경로가 와야 합니다.");
+                    progressPath = args[++i];
+                    break;
                 case "--skip-llm":
                     skipLlm = true;
                     break;
@@ -132,6 +148,8 @@ internal static class Program
                         balancePath = args[i]["--balance=".Length..];
                     else if (args[i].StartsWith("--summary=", StringComparison.Ordinal))
                         summaryPath = args[i]["--summary=".Length..];
+                    else if (args[i].StartsWith("--progress=", StringComparison.Ordinal))
+                        progressPath = args[i]["--progress=".Length..];
                     else
                         positional.Add(args[i]);
                     break;
@@ -142,10 +160,54 @@ internal static class Program
             runsPerBot = n;
 
         balancePath ??= Environment.GetEnvironmentVariable("DUNGEONVM_BALANCE_JSON");
-        return new ParsedArgs(runsPerBot, balancePath, summaryPath, skipLlm);
+        return new ParsedArgs(runsPerBot, balancePath, summaryPath, progressPath, skipLlm);
     }
 
-    private static RunResult SimulateOneRun(IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics)
+    /// <summary>실행 도중 진행 상황을 파일에 덮어쓴다. 웹 UI가 이 파일을 주기적으로 폴링해서 진행률/실시간 지표를 보여준다.</summary>
+    private static void WriteProgress(
+        string path, string status, IBot[] bots, int runsPerBot, int totalRuns, int totalTarget, string currentBotName,
+        Dictionary<string, int> completedRunsByBot, RunLogCollector collector, StageAttemptCollector stageAttempts, double elapsedSeconds)
+    {
+        var perBot = bots.Select(b => new
+        {
+            botName = b.Name,
+            completedRuns = completedRunsByBot[b.Name],
+            runsPerBot,
+            winRate = collector.WinRate(b.Name),
+            averageStagesCleared = collector.AverageStagesCleared(b.Name),
+            battlesFought = stageAttempts.TotalAttempts(b.Name),
+        }).ToList();
+
+        var progress = new
+        {
+            status,
+            currentBotName,
+            completedRuns = totalRuns,
+            totalRunsPlanned = totalTarget,
+            percent = totalTarget == 0 ? 0 : totalRuns / (double)totalTarget,
+            elapsedSeconds,
+            battlesFoughtTotal = stageAttempts.TotalAttempts(),
+            battlesWonTotal = stageAttempts.TotalWins(),
+            overallWinRateSoFar = stageAttempts.OverallWinRate(),
+            overallAvgClearSecondsSoFar = stageAttempts.OverallAvgClearSeconds(),
+            perBot,
+        };
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            string tmp = path + ".tmp";
+            File.WriteAllText(tmp, JsonSerializer.Serialize(progress));
+            File.Copy(tmp, path, overwrite: true);
+            File.Delete(tmp);
+        }
+        catch (IOException)
+        {
+            // 폴링 중인 리더와 파일 쓰기가 겹쳐 실패해도 다음 주기(10런 뒤)에 다시 쓰므로 무시한다.
+        }
+    }
+
+    private static RunResult SimulateOneRun(IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics, StageAttemptCollector stageAttempts)
     {
         var currency = new CurrencyManager();
         var inventory = new InventoryManager();
@@ -178,6 +240,13 @@ internal static class Program
                 elapsed += TickSeconds;
             }
 
+            // 제한 시간 초과 = 사실상 돌파 불가로 간주하고 패배 처리
+            if (outcome == RunEndReason.InProgress)
+                outcome = RunEndReason.PartyWiped;
+
+            double remainingHpRatio = party.Average(c => c.CurrentHealth / c.MaxHealth);
+            stageAttempts.Add(new StageAttempt(bot.Name, stageLoop.CurrentStage, outcome, elapsed, remainingHpRatio));
+
             if (outcome == RunEndReason.Victory)
             {
                 var rewardChoice = stageLoop.CompleteStageVictory(rng);
@@ -185,10 +254,6 @@ internal static class Program
                 stageLoop.ResolveStageRewardChoice(rewardChoice, selected, rng);
                 continue;
             }
-
-            // 제한 시간 초과 = 사실상 돌파 불가로 간주하고 패배 처리
-            if (outcome == RunEndReason.InProgress)
-                outcome = RunEndReason.PartyWiped;
 
             return FinishRun(bot, runIndex, outcome, stageLoop, currency, meta, metrics, ctx);
         }
@@ -295,11 +360,22 @@ internal static class Program
     /// 콘솔 리포트와 동일한 수치를 summary.json으로 저장한다. 실시간 대시보드(B)가 콘솔 출력을 파싱하지 않고
     /// 이 파일 하나만 읽어서 밸런스 파라미터 변경 → 재시뮬레이션 → 그래프 갱신 루프를 구성할 수 있게 하기 위함.
     /// </summary>
-    private static void WriteSummaryJson(IBot[] bots, RunLogCollector collector, Dictionary<string, WeaponTierMetrics> metricsByBot, string? summaryPath)
+    private static void WriteSummaryJson(IBot[] bots, RunLogCollector collector, Dictionary<string, WeaponTierMetrics> metricsByBot, StageAttemptCollector stageAttempts, string? summaryPath)
     {
         var botSummaries = bots.Select(bot =>
         {
             var metrics = metricsByBot[bot.Name];
+            var stageBreakdown = stageAttempts.ByStage(bot.Name)
+                .Select(s => new
+                {
+                    stage = s.Stage,
+                    attempts = s.Attempts,
+                    wins = s.Wins,
+                    winRate = s.WinRate,
+                    avgClearSeconds = s.AvgClearSeconds,
+                    avgRemainingHpRatio = s.AvgRemainingHpRatio,
+                })
+                .ToList();
 
             var weaponAdoption = Enum.GetValues(typeof(WeaponType)).Cast<WeaponType>()
                 .SelectMany(type => Enumerable.Range(1, WeaponCatalog.MaxTier)
@@ -327,6 +403,7 @@ internal static class Program
                 outcomeBreakdown = collector.OutcomeBreakdown(bot.Name).ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 weaponAdoption,
                 armorAdoption,
+                stageBreakdown,
             };
         }).ToList();
 

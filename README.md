@@ -21,7 +21,8 @@ DungeonVM/
     ├── DungeonVM.LLM/           # 저채택 아이템 감지 시 LLM 밸런싱 제안 모듈
     └── tools/
         ├── balance_pipeline/   # 엑셀 -> 밸런스 JSON 변환 파이썬 CLI
-        └── balance_dashboard/  # 슬라이더로 값 조정 -> 즉시 재시뮬레이션하는 Streamlit 라이브 대시보드
+        ├── balance_dashboard/  # 슬라이더로 값 조정 -> 즉시 재시뮬레이션하는 Streamlit 라이브 대시보드
+        └── balance_web/        # 배치 시뮬레이션 진행률/스테이지별 결과를 실시간으로 보는 로컬 웹 러너
 ```
 
 각 프로젝트의 상세 내용은 하위 README를 참고하세요:
@@ -30,6 +31,7 @@ DungeonVM/
 - [backend/DungeonVM.LLM/README.md](backend/DungeonVM.LLM/README.md) - LLM 밸런싱 모듈 동작 방식, API 키 설정
 - [backend/tools/balance_pipeline/README.md](backend/tools/balance_pipeline/README.md) - 엑셀→밸런스 JSON 파이프라인 사용법
 - [backend/tools/balance_dashboard/README.md](backend/tools/balance_dashboard/README.md) - 라이브 밸런스 대시보드 사용법
+- [backend/tools/balance_web/README.md](backend/tools/balance_web/README.md) - 실시간 배치 플레이테스트 웹 러너 사용법
 
 ## 빌드 / 실행
 
@@ -48,4 +50,4 @@ dotnet run --project backend/DungeonVM.Simulator/DungeonVM.Simulator.csproj -c R
 
 - Unity 엔진 의존성(UnityEngine, MonoBehaviour 등) 0%
 - UI 렌더링/스프라이트/DoTween 연출은 포함하지 않음 (팀원 담당)
-- 캐릭터 슬롯 2→5 확장(로스터 성장)은 핵심 분석 과제와 직접 관련이 없어 시뮬레이터에서는 고정 2인 파티로 단순화
+- 캐릭터 슬롯은 2명 시작 → 골드로 최대 5명까지 해금(로스터 성장)을 시뮬레이터에도 반영

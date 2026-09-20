@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>던전 자판기 · 배치 플레이테스트</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">DVM</span> DUNGEON VENDING MACHINE</div>
+  <div class="crumbs">LOCAL <span class="sep">/</span> BATCH PLAYTEST</div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div class="eyebrow">COMBAT &amp; GROWTH SIMULATION</div>
+    <h1>배치 플레이테스트</h1>
+    <p class="sub">가상 봇 3종(SpaceExpansion · VendingRush · MidTierCamp)이 뽑고 합성하고 강화하는 과정을 실시간으로 확인하세요.</p>
+  </div>
+
+  <div class="layout">
+    <section class="panel settings-panel">
+      <h2><span class="step">01</span> 실행 설정</h2>
+
+      <label class="field">
+        <span>봇당 실행 횟수</span>
+        <input type="number" id="runsPerBot" value="500" min="10" max="5000" step="10" />
+        <span class="hint">3개 봇 동시 비교 · 총 <b id="totalRunsPreview">1,500</b>회</span>
+      </label>
+
+      <div class="actions">
+        <button id="runBtn" class="btn btn-primary">▶ 시뮬레이션 실행</button>
+        <button id="stopBtn" class="btn btn-ghost" disabled>실행 중단</button>
+      </div>
+
+      <div class="field">
+        <span>밸런스 소스</span>
+        <div class="hint">DungeonVM.Core/Balance/DefaultBalance.json (현재 저장된 값 그대로 실행). 값을 바꾸고 싶다면
+          <code>balance_dashboard</code>에서 조정 후 "DefaultBalance.json에 반영"을 먼저 눌러주세요.</div>
+      </div>
+
+      <h3>최근 실행 기록</h3>
+      <ul id="runHistory" class="history"></ul>
+    </section>
+
+    <section class="panel status-panel">
+      <div class="panel-head">
+        <h2><span class="step">02</span> 실행 현황</h2>
+        <div class="status-actions">
+          <button id="refreshBtn" class="link-btn">새로고침</button>
+          <span id="statusBadge" class="badge badge-idle">대기 중</span>
+        </div>
+      </div>
+
+      <div class="run-summary">
+        <div id="runLabel" class="run-label">아직 실행한 적이 없습니다.</div>
+        <div id="runId" class="run-id"></div>
+      </div>
+
+      <div class="progress-row">
+        <div class="progress-track"><div id="progressBar" class="progress-fill" style="width:0%"></div></div>
+        <div id="progressPercent" class="progress-percent">0%</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <div class="stat-label">완료한 전투</div>
+          <div id="statBattles" class="stat-value">—</div>
+          <div class="stat-sub">실제 실행 횟수</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">판정 전투 승률</div>
+          <div id="statWinRate" class="stat-value">—</div>
+          <div id="statWinRateSub" class="stat-sub">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">평균 클리어</div>
+          <div id="statAvgClear" class="stat-value">—</div>
+          <div class="stat-sub">승리 전투 기준 · 게임 시간</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">실제 소요 시간</div>
+          <div id="statElapsed" class="stat-value">—</div>
+          <div class="stat-sub">시뮬레이터 실행 시간</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2><span class="step">03</span> 스테이지 결과</h2>
+      <div class="status-actions">
+        <button id="exportCsv" class="link-btn" disabled>CSV ↓</button>
+        <button id="exportJson" class="link-btn" disabled>JSON ↓</button>
+      </div>
+    </div>
+    <p class="hint">봇별로 스테이지 1~30 전투 결과를 집계합니다. 승률이 급격히 떨어지는 지점이 "정체 구간" 후보입니다.</p>
+
+    <div class="bot-tabs" id="botTabs">
+      <button class="bot-tab active" data-bot="SpaceExpansion">SpaceExpansion</button>
+      <button class="bot-tab" data-bot="VendingRush">VendingRush</button>
+      <button class="bot-tab" data-bot="MidTierCamp">MidTierCamp</button>
+    </div>
+
+    <div class="chart-wrap"><canvas id="stageChart"></canvas></div>
+
+    <div class="table-wrap">
+      <table id="stageTable">
+        <thead>
+          <tr>
+            <th>스테이지</th>
+            <th>전투 / 승리</th>
+            <th>판정 승률</th>
+            <th>평균 클리어</th>
+            <th>평균 잔여 HP</th>
+          </tr>
+        </thead>
+        <tbody id="stageTableBody">
+          <tr><td colspan="5" class="empty">아직 결과가 없습니다. 왼쪽에서 시뮬레이션을 실행해주세요.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel compare-panel">
+    <h2><span class="step">04</span> 실제 플레이 데이터 비교 <span class="badge badge-soon">준비 중</span></h2>
+    <p class="hint">
+      Unity 클라이언트가 실제 플레이 로그(예: Supabase)를 쌓기 시작하면, 이 자리에서 시뮬레이션 결과와
+      나란히 비교할 수 있도록 만들 예정입니다. 지금은 Unity 쪽 개발이 시작 전이라 연동하지 않았습니다.
+    </p>
+    <label class="field">
+      <span>미리 비교해보기 (선택) — 같은 형식의 summary.json 업로드</span>
+      <input type="file" id="compareUpload" accept="application/json" />
+      <span class="hint">시뮬레이터 결과와 동일한 스키마(<code>summary.json</code>)라면 어떤 파일이든 비교선으로 겹쳐 그릴 수 있습니다.</span>
+    </label>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

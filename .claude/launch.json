@@ -10,6 +10,12 @@
         "--server.port", "8765"
       ],
       "port": 8765
+    },
+    {
+      "name": "balance-web",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["backend/tools/balance_web/server.py"],
+      "port": 8788
     }
   ]
 }
