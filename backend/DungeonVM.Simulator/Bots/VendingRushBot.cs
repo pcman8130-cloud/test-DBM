@@ -16,7 +16,8 @@ public sealed class VendingRushBot : IBot
     public void OnCombatTick(BotContext ctx)
     {
         ctx.ApplyFreeActions();
-        while (ctx.TryRollWeapon()) { }
+        if (!ShouldSaveForNextGoal(ctx))
+            while (ctx.TryRollWeapon()) { }
     }
 
     public void OnMaintenancePhase(BotContext ctx)
@@ -40,7 +41,10 @@ public sealed class VendingRushBot : IBot
         EquipUnarmed(ctx);
 
         // 그리드 해금은 하지 않는다(가로 확장에 골드를 몰아주고 그리드 병목은 그대로 감수).
-        while (ctx.TryRollWeapon()) { }
+        // 다음 업그레이드/슬롯이 1~2스테이지 수입으로 곧 감당 가능하면 재뽑기를 멈추고 저축한다
+        // (안 그러면 남는 돈을 매번 재뽑기에 다 써버려서 목돈이 드는 목표를 영원히 못 산다).
+        if (!ShouldSaveForNextGoal(ctx))
+            while (ctx.TryRollWeapon()) { }
 
         foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is not null))
         {
@@ -48,6 +52,18 @@ public sealed class VendingRushBot : IBot
             ctx.TryEquipFromGrid(character, w => w.Type == committed && w.Tier > character.EquippedWeapon!.Tier);
         }
     }
+
+    /// <summary>다음으로 노리는 목표(공격 업그레이드 → 방어 업그레이드 → 캐릭터 슬롯) 비용. 더 살 게 없으면 null.</summary>
+    private static int? NextGoalCost(BotContext ctx)
+    {
+        if (ctx.Machine.CanUpgradeAttack) return ctx.Machine.AttackUpgradeCost;
+        if (ctx.Machine.CanUpgradeDefense) return ctx.Machine.DefenseUpgradeCost;
+        if (ctx.StageLoop.CanUnlockCharacterSlot) return ctx.StageLoop.NextCharacterSlotGoldCost();
+        return null;
+    }
+
+    private static bool ShouldSaveForNextGoal(BotContext ctx)
+        => NextGoalCost(ctx) is { } cost && ctx.ShouldSaveFor(cost);
 
     private void EquipUnarmed(BotContext ctx)
     {

@@ -41,6 +41,7 @@ public sealed class SupabaseLogger : IRunLogSink
             final_armors = result.FinalArmors,
             grid_bottleneck_sells = result.GridBottleneckSells,
             rune_avoidance_skips = result.RuneAvoidanceSkips,
+            savings_holds = result.SavingsHolds,
         };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);

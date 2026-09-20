@@ -228,7 +228,7 @@ internal static class Program
             bot.OnMaintenancePhase(ctx);
 
             var monsters = stageLoop.BeginStageCombat(rng);
-            var battle = new BattleField(party, monsters, rng);
+            var battle = new BattleField(party, monsters, rng, currency);
 
             var outcome = RunEndReason.InProgress;
             double elapsed = 0;
@@ -282,7 +282,7 @@ internal static class Program
 
         return new RunResult(
             bot.Name, runIndex, outcome, stagesCleared, currency.Gold, currency.Souls,
-            weapons, armors, ctx.GridBottleneckSells, ctx.RuneAvoidanceSkips);
+            weapons, armors, ctx.GridBottleneckSells, ctx.RuneAvoidanceSkips, ctx.SavingsHolds);
     }
 
     private static void InvestMetaSouls(MetaProgression meta)
@@ -308,6 +308,7 @@ internal static class Program
             Console.WriteLine($"  평균 최종 골드: {collector.AverageFinalGold(bot.Name):F0}");
             Console.WriteLine($"  평균 그리드 병목 강제판매: {collector.AverageGridBottleneckSells(bot.Name):F1}회/런");
             Console.WriteLine($"  평균 룬 보존 위한 머지 회피: {collector.AverageRuneAvoidanceSkips(bot.Name):F1}회/런");
+            Console.WriteLine($"  평균 저축(재뽑기 보류) 횟수: {collector.AverageSavingsHolds(bot.Name):F1}회/런");
 
             foreach (var (reason, count) in collector.OutcomeBreakdown(bot.Name))
                 Console.WriteLine($"  종료 사유 {reason}: {count}건");
@@ -399,6 +400,7 @@ internal static class Program
                 averageFinalGold = collector.AverageFinalGold(bot.Name),
                 averageGridBottleneckSells = collector.AverageGridBottleneckSells(bot.Name),
                 averageRuneAvoidanceSkips = collector.AverageRuneAvoidanceSkips(bot.Name),
+                averageSavingsHolds = collector.AverageSavingsHolds(bot.Name),
                 levelBucketDistribution = collector.LevelBucketDistribution(bot.Name),
                 outcomeBreakdown = collector.OutcomeBreakdown(bot.Name).ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
                 weaponAdoption,

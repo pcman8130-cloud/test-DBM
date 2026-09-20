@@ -89,6 +89,7 @@ create table run_logs (
   final_armors text[],
   grid_bottleneck_sells int,
   rune_avoidance_skips int,
+  savings_holds int,
   created_at timestamptz default now()
 );
 ```

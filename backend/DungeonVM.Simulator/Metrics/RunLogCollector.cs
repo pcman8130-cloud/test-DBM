@@ -40,6 +40,12 @@ public sealed class RunLogCollector
         return subset.Count == 0 ? 0 : subset.Average(r => r.RuneAvoidanceSkips);
     }
 
+    public double AverageSavingsHolds(string? botName = null)
+    {
+        var subset = Filter(botName);
+        return subset.Count == 0 ? 0 : subset.Average(r => r.SavingsHolds);
+    }
+
     /// <summary>런 종료 시점 무기 레벨을 5/10/15 구간으로 나눠 표본 대비 비율을 낸다 (도달률이 아닌 "정체 지점" 스냅샷).</summary>
     public IReadOnlyDictionary<string, double> LevelBucketDistribution(string? botName = null)
     {

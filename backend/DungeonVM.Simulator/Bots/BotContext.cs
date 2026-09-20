@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
 using DungeonVM.Core.Systems;
@@ -21,6 +22,9 @@ public sealed class BotContext
 
     /// <summary>룬이 소켓된 무기를 보존하기 위해 유효한 머지를 의도적으로 건너뛴 횟수. 룬 소멸 회피 메트릭용.</summary>
     public int RuneAvoidanceSkips { get; private set; }
+
+    /// <summary>ShouldSaveFor 판단으로 재뽑기 등 할인 소비를 멈추고 저축하기로 한 횟수. 저축 로직 작동 확인용.</summary>
+    public int SavingsHolds { get; private set; }
 
     public BotContext(StageLoop stageLoop, Random rng, MetaProgression meta)
     {
@@ -48,6 +52,35 @@ public sealed class BotContext
         Inventory.AutoMergeGrid(tracked);
         foreach (var c in Party)
             Inventory.TryFieldUpgrade(c, tracked);
+    }
+
+    /// <summary>지금 스테이지부터 stagesAhead개 스테이지의 클리어 기본 골드 수입(스테이지 선택보상 제외) 합산 예상치.</summary>
+    public int ProjectedIncome(int stagesAhead)
+    {
+        var cfg = BalanceProvider.Current.StageLoop;
+        int total = 0;
+        for (int i = 0; i < stagesAhead; i++)
+        {
+            int stage = Math.Min(StageLoop.CurrentStage + i, Core.Systems.StageLoop.MaxStage);
+            total += cfg.VictoryGoldBase + stage * cfg.VictoryGoldPerStage;
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// 목표 비용이 지금 당장은 부족하지만 앞으로 stagesAhead 스테이지 수입 안에 모일 것으로 예상되면 true.
+    /// 이 경우 봇은 재뽑기 등 할인 소비를 멈추고 저축해야 한다 — 안 그러면 정비 페이즈마다 남는 돈을
+    /// 전부 소비해버려서 목표 금액이 영원히 모이지 않는다(예: 150골드 업그레이드가 스테이지 수입만으로는
+    /// 14스테이지는 지나야 한 번에 감당되는데, 매번 남는 돈을 재뽑기에 다 쓰면 그 시점이 와도 못 삼).
+    /// </summary>
+    public bool ShouldSaveFor(int goalCost, int stagesAhead = 2)
+    {
+        int shortfall = goalCost - Currency.Gold;
+        if (shortfall <= 0) return false;
+
+        bool shouldSave = shortfall <= ProjectedIncome(stagesAhead);
+        if (shouldSave) SavingsHolds++;
+        return shouldSave;
     }
 
     public bool TryRollWeapon()

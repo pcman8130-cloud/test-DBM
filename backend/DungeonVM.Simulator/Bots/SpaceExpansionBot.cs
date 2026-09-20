@@ -15,7 +15,8 @@ public sealed class SpaceExpansionBot : IBot
     public void OnCombatTick(BotContext ctx)
     {
         ctx.ApplyFreeActions(); // 룬 보존 없이 항상 즉시 머지
-        while (ctx.TryRollWeapon()) { }
+        if (!ShouldSaveForNextGoal(ctx))
+            while (ctx.TryRollWeapon()) { }
     }
 
     public void OnMaintenancePhase(BotContext ctx)
@@ -35,8 +36,10 @@ public sealed class SpaceExpansionBot : IBot
         // 1순위: 그리드 해금 (동시 보관 가능한 재료를 늘려 고레벨 머지 체인을 지원)
         while (ctx.TryUnlockGrid()) { }
 
-        // 남는 골드는 전부 무기 뽑기로 재투입
-        while (ctx.TryRollWeapon()) { }
+        // 다음 그리드 블록 해금이 1~2스테이지 수입으로 곧 감당 가능하면 재뽑기를 멈추고 저축한다.
+        // 남는 골드는 그 외엔 전부 무기 뽑기로 재투입.
+        if (!ShouldSaveForNextGoal(ctx))
+            while (ctx.TryRollWeapon()) { }
 
         foreach (var character in ctx.Party)
         {
@@ -52,6 +55,9 @@ public sealed class SpaceExpansionBot : IBot
         foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is null))
             ctx.TryEquipFromGrid(character);
     }
+
+    private static bool ShouldSaveForNextGoal(BotContext ctx)
+        => !ctx.Inventory.Grid.IsFullyUnlocked && ctx.ShouldSaveFor(ctx.Inventory.Grid.NextUnlockGoldCost());
 
     /// <summary>항상 골드 — 그리드 해금과 끝없는 재뽑기에 쏟아부을 현금이 최우선이다.</summary>
     public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.Gold);

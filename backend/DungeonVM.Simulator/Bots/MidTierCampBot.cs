@@ -49,7 +49,9 @@ public sealed class MidTierCampBot : IBot
         foreach (var character in ctx.Party)
             ctx.TrySocketRuneOn(character);
 
-        // 그리드가 꽉 찼을 때만 최소한으로 해금(공격적 확장은 하지 않음)
+        // 그리드가 꽉 찼을 때만 최소한으로 해금(공격적 확장은 하지 않음). 그리드 확장 자체가 이 봇의
+        // 목표가 아니라서 이걸 위해 재뽑기(무기 확보/룬 확보 기회)를 멈추고 저축하지는 않는다 —
+        // 그렇게 해봤더니 승률이 오히려 떨어졌다(무기/룬 확보가 밀려서).
         if (ctx.Inventory.Grid.IsFull)
             ctx.TryUnlockGrid();
 

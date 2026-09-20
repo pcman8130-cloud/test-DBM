@@ -16,5 +16,6 @@ public sealed record RunResult(
     IReadOnlyList<string> FinalWeapons,
     IReadOnlyList<string> FinalArmors,
     int GridBottleneckSells,
-    int RuneAvoidanceSkips
+    int RuneAvoidanceSkips,
+    int SavingsHolds
 );

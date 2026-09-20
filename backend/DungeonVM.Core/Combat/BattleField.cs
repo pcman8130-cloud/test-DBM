@@ -1,6 +1,7 @@
 using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 using DungeonVM.Core.Models;
+using DungeonVM.Core.Systems;
 
 namespace DungeonVM.Core.Combat;
 
@@ -16,9 +17,11 @@ public sealed class BattleField
     private readonly IReadOnlyList<Character> _party;
     private readonly List<Monster> _monsters;
     private readonly Random _rng;
+    private readonly CurrencyManager _currency;
 
     private readonly Dictionary<Guid, double> _characterCooldowns = new();
     private readonly Dictionary<Guid, double> _monsterCooldowns = new();
+    private readonly HashSet<Guid> _goldAwarded = new();
 
     // 속성 룬 적중 효과의 몬스터별 상태(화상/독/둔화). Monster 자체는 불변으로 유지하고 전투 중 상태만 여기서 추적한다.
     private readonly Dictionary<Guid, double> _monsterBurnDps = new();
@@ -29,11 +32,12 @@ public sealed class BattleField
 
     public double ElapsedSeconds { get; private set; }
 
-    public BattleField(IReadOnlyList<Character> party, List<Monster> monsters, Random rng)
+    public BattleField(IReadOnlyList<Character> party, List<Monster> monsters, Random rng, CurrencyManager currency)
     {
         _party = party;
         _monsters = monsters;
         _rng = rng;
+        _currency = currency;
 
         foreach (var c in _party) _characterCooldowns[c.Id] = 0;
         foreach (var m in _monsters) _monsterCooldowns[m.Id] = 0;
@@ -76,7 +80,7 @@ public sealed class BattleField
                 if (target is null) break;
 
                 double dmg = DamageCalculator.ComputeDamage(c.AttackDamage, c.Element, target.Element);
-                target.TakeDamage(dmg);
+                DamageMonster(target, dmg);
                 ApplyElementEffect(c, target, dmg);
             }
         }
@@ -168,7 +172,7 @@ public sealed class BattleField
                 if (chainCandidates.Count > 0)
                 {
                     var chainTarget = chainCandidates[_rng.Next(chainCandidates.Count)];
-                    chainTarget.TakeDamage(dmg * cfg.LightningChainDamageRatio);
+                    DamageMonster(chainTarget, dmg * cfg.LightningChainDamageRatio);
                 }
                 break;
 
@@ -177,9 +181,19 @@ public sealed class BattleField
                 break;
 
             case ElementType.Dark:
-                target.TakeDamage(dmg * cfg.DarkBonusDamageRatio);
+                DamageMonster(target, dmg * cfg.DarkBonusDamageRatio);
                 break;
         }
+    }
+
+    /// <summary>몬스터에게 피해를 주고, 이번 피해로 처치했다면 골드를 지급한다(몬스터당 1회만).</summary>
+    private void DamageMonster(Monster m, double amount)
+    {
+        if (!m.IsAlive) return;
+
+        m.TakeDamage(amount);
+        if (!m.IsAlive && _goldAwarded.Add(m.Id))
+            _currency.Add(CurrencyType.Gold, m.GoldReward);
     }
 
     private void SetBurn(Guid monsterId, double damagePerSecond, double durationSeconds)
@@ -198,13 +212,13 @@ public sealed class BattleField
 
             if (_monsterBurnRemaining.GetValueOrDefault(m.Id) > 0)
             {
-                m.TakeDamage(_monsterBurnDps[m.Id] * dt);
+                DamageMonster(m, _monsterBurnDps[m.Id] * dt);
                 _monsterBurnRemaining[m.Id] -= dt;
             }
 
             if (_monsterPoisonRemaining.GetValueOrDefault(m.Id) > 0)
             {
-                m.TakeDamage(cfg.PoisonDamagePerStackPerSecond * _monsterPoisonStacks.GetValueOrDefault(m.Id) * dt);
+                DamageMonster(m, cfg.PoisonDamagePerStackPerSecond * _monsterPoisonStacks.GetValueOrDefault(m.Id) * dt);
                 _monsterPoisonRemaining[m.Id] -= dt;
                 if (_monsterPoisonRemaining[m.Id] <= 0)
                     _monsterPoisonStacks[m.Id] = 0;
