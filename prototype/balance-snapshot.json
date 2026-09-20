@@ -1,0 +1,130 @@
+{
+  "_meta": "prototype/dungeon-vending-machine.html 의 실제 수치 스냅샷. backend/DungeonVM.Core/Balance/DefaultBalance.json 스키마와 동일한 형식이며, DungeonVM.Simulator --balance 옵션으로 그대로 로드 가능. 2026-09-20 동기화 작업 직후 기준.",
+  "weapons": {
+    "maxTier": 15,
+    "levelMultipliers": [1.00, 1.35, 1.75, 2.15, 2.55, 2.95, 3.35, 3.75, 4.15, 4.60, 5.30, 6.10, 7.10, 8.30, 10.00],
+    "skillBonusAtLevel5": 0.15,
+    "skillBonusAtLevel10": 0.35,
+    "skillBonusAtLevel15": 0.65,
+    "table": {
+      "Sword":  { "row": "Front", "baseDamage": 12, "attacksPerSecond": 1.2, "bonusHealth": 20, "pullAggro": 0 },
+      "Shield": { "row": "Front", "baseDamage": 5,  "attacksPerSecond": 0.8, "bonusHealth": 60, "pullAggro": 1.0 },
+      "Dagger": { "row": "Front", "baseDamage": 7,  "attacksPerSecond": 2.2, "bonusHealth": 10, "pullAggro": 0 },
+      "Bow":    { "row": "Back",  "baseDamage": 10, "attacksPerSecond": 1.4, "bonusHealth": 8,  "pullAggro": 0 },
+      "Staff":  { "row": "Back",  "baseDamage": 9,  "attacksPerSecond": 0.9, "bonusHealth": 8,  "pullAggro": 0 },
+      "Bible":  { "row": "Back",  "baseDamage": 8,  "attacksPerSecond": 1.0, "bonusHealth": 18, "pullAggro": 3.0 }
+    }
+  },
+  "armor": {
+    "dodgeClampMax": 0.75,
+    "rollRanges": {
+      "Common":    { "minHp": 10, "maxHp": 25,  "minAtk": 0.00, "maxAtk": 0.03, "minDodge": 0.00, "maxDodge": 0.03 },
+      "Rare":      { "minHp": 25, "maxHp": 50,  "minAtk": 0.03, "maxAtk": 0.07, "minDodge": 0.03, "maxDodge": 0.06 },
+      "Epic":      { "minHp": 40, "maxHp": 75,  "minAtk": 0.05, "maxAtk": 0.10, "minDodge": 0.05, "maxDodge": 0.08 },
+      "Legendary": { "minHp": 70, "maxHp": 120, "minAtk": 0.09, "maxAtk": 0.15, "minDodge": 0.07, "maxDodge": 0.12 }
+    }
+  },
+  "vendingMachine": {
+    "maxUpgradeLevel": 5,
+    "weaponRollCost": 10,
+    "armorRollCost": 10,
+    "tier2ChanceBase": 0.05,
+    "tier2ChancePerLevel": 0.08,
+    "legendaryChanceBase": 0.01,
+    "legendaryChancePerLevel": 0.0,
+    "epicChanceBase": 0.05,
+    "epicChancePerLevel": 0.03,
+    "rareChanceBase": 0.30,
+    "rareChancePerLevel": 0.05,
+    "upgradeGoldCosts": [150, 350, 700, 1300]
+  },
+  "wave": {
+    "scaleBase": 1.0,
+    "scalePerStage": 0.035,
+    "mobCountBase": 3,
+    "mobCountStageDivisor": 4,
+    "mobBaseHealth": 12,
+    "mobBaseDamage": 1.5,
+    "mobApsMin": 0.6,
+    "mobApsRandomRange": 0.3,
+    "mobGoldBase": 3,
+    "mobGoldStageDivisor": 2,
+    "midBossHealth": 220,
+    "midBossDamage": 10,
+    "midBossAps": 0.6,
+    "midBossGoldBase": 40,
+    "midBossGoldPerStage": 2,
+    "bigBossHealth": 600,
+    "bigBossDamage": 18,
+    "bigBossAps": 0.5,
+    "bigBossGoldBase": 120,
+    "bigBossGoldPerStage": 4
+  },
+  "metaProgression": {
+    "maxLevel": 5,
+    "levelCostBase": 20,
+    "levelCostPerLevel": 30,
+    "retireSpeedPerLevel": 0.15,
+    "firstRollTierBoostPerLevel": 0.10,
+    "baseHealthBonusPerLevel": 10
+  },
+  "currency": {
+    "weaponMarketValueTierBase": 10,
+    "armorMarketValues": { "Common": 15, "Rare": 40, "Epic": 90, "Legendary": 200 },
+    "sellRefundRatio": 0.5
+  },
+  "stageLoop": {
+    "maxStage": 30,
+    "victoryGoldBase": 40,
+    "victoryGoldPerStage": 8,
+    "victorySoulsBase": 2,
+    "victorySoulsStageDivisor": 3
+  },
+  "character": {
+    "baseHealth": 90,
+    "retireDurationSeconds": 30
+  },
+  "combat": {
+    "elementAdvantageMultiplier": 1.5,
+    "elementDisadvantageMultiplier": 0.75
+  },
+  "mergeGrid": {
+    "totalCells": 16,
+    "cellsPerUnlock": 4,
+    "unlockGoldCosts": [100, 250, 500]
+  },
+  "characterSlots": {
+    "startingSlots": 2,
+    "maxSlots": 5,
+    "unlockGoldCosts": [300, 700, 1400, 3000]
+  },
+  "elementEffects": {
+    "fireBurnDamagePerSecond": 3,
+    "fireBurnDurationSeconds": 4,
+    "fireSplashRatio": 0.4,
+    "iceSlowRatio": 0.3,
+    "iceSlowDurationSeconds": 3,
+    "poisonDamagePerStackPerSecond": 1.5,
+    "poisonDurationSeconds": 5,
+    "poisonMaxStacks": 5,
+    "lightningChainDamageRatio": 0.5,
+    "holyLifestealRatio": 0.2,
+    "darkBonusDamageRatio": 0.15
+  },
+  "stageRewardChoice": {
+    "regularGoldOption": 30,
+    "regularAttackBoost": 0.4,
+    "regularHealthBoost": 0.6,
+    "regularBoxRuneChance": 0.9,
+    "midBossBaseSoulsBonus": 5,
+    "midBossGoldOption": 80,
+    "midBossAttackBoost": 1.0,
+    "midBossHealthBoost": 1.4,
+    "midBossBoxRuneChance": 0.7,
+    "bossBaseSoulsBonus": 12,
+    "bossGoldOption": 150,
+    "bossAttackBoost": 2.0,
+    "bossHealthBoost": 2.5,
+    "bossBoxRuneChance": 0.5
+  }
+}
