@@ -529,10 +529,13 @@
     legendary:{ label:'레전더리', color:'var(--rarity-legendary)', hp:[70,120], atk:[0.09,0.15], dodge:[0.07,0.12] }
   };
 
+  // atkFlat/hpFlat는 스테이지 스케일 없는 고정값 — 예전엔 stage에 비례해 계속 커져서
+  // "스탯 보상만 계속 선택"하는 것만으로 무기 합성 없이 자동 클리어가 되는 문제가 있었음.
+  // 이제 무기 성장(레벨/스킬 배율)이 메인 딜러이고, 이 보상은 보조 수단 정도로만 작동하게 낮춤.
   var REWARD_CONFIG = {
-    normal:{ gold:30, atkFlat:5, hpFlat:16, boxWeights:{ relic:0.10, rune:0.90 } },
-    mid:{ gold:80, atkFlat:11, hpFlat:34, boxWeights:{ relic:0.30, rune:0.70 } },
-    boss:{ gold:150, atkFlat:20, hpFlat:60, boxWeights:{ relic:0.50, rune:0.50 } }
+    normal:{ gold:30, atkFlat:3, hpFlat:10, boxWeights:{ relic:0.10, rune:0.90 } },
+    mid:{ gold:80, atkFlat:6, hpFlat:20, boxWeights:{ relic:0.30, rune:0.70 } },
+    boss:{ gold:150, atkFlat:12, hpFlat:35, boxWeights:{ relic:0.50, rune:0.50 } }
   };
 
   var VEND_UPGRADE_COSTS = [150, 350, 700, 1300];
@@ -1088,18 +1091,18 @@
     var tier = tierOf(stage);
     var info = getStageInfo(stage);
     if(tier==='boss'){
-      var hp = Math.round(950*scale);
-      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:22*scale, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
+      var hp = Math.round(1600*scale);
+      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:30*scale, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     if(tier==='mid'){
-      var hp = Math.round(360*scale);
-      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:13*scale, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
+      var hp = Math.round(600*scale);
+      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:18*scale, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     var count = 3 + Math.floor(stage/4);
     var list=[];
     for(var i=0;i<count;i++){
-      var hp = Math.round(32*scale*rnd(0.9,1.1));
-      list.push({ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:2.8*scale, aps:rnd(0.6,0.9), atkTimer:rnd(0.2,1.2), alive:true, gold:3+Math.floor(stage/2), burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 });
+      var hp = Math.round(55*scale*rnd(0.9,1.1));
+      list.push({ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:4.5*scale, aps:rnd(0.6,0.9), atkTimer:rnd(0.2,1.2), alive:true, gold:3+Math.floor(stage/2), burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 });
     }
     return list;
   }
@@ -1432,8 +1435,8 @@
     state.rewardOptions = {
       tier: tier,
       gold: cfg.gold,
-      atkFlat: cfg.atkFlat + Math.floor(stage/4),
-      hpFlat: cfg.hpFlat + stage*2,
+      atkFlat: cfg.atkFlat,
+      hpFlat: cfg.hpFlat,
       boxWeights: cfg.boxWeights
     };
 

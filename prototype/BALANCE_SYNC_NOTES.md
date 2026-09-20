@@ -28,13 +28,14 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
 |---|---|---|---|
 | `weapons.table.Bible.baseDamage` | 4 | **8** | 과거 유저 요청으로 의도적으로 상향 |
 | `weapons.table.Bible.bonusHealth` | 8 | **18** | 과거 유저 요청으로 의도적으로 상향 |
-| `wave.mobBaseHealth` | 12 | **32** | 몬스터가 너무 쉽게 죽는다는 플레이테스트 피드백으로 상향 |
-| `wave.mobBaseDamage` | 1.5 | **2.8** | 상동 |
-| `wave.midBossHealth` | 220 | **360** | 상동 |
-| `wave.midBossDamage` | 10 | **13** | 상동 |
-| `wave.bigBossHealth` | 600 | **950** | 상동 |
-| `wave.bigBossDamage` | 18 | **22** | 상동 |
+| `wave.mobBaseHealth` | 12 | **55** | 1차 상향(32)도 부족하다는 피드백으로 2차 상향 |
+| `wave.mobBaseDamage` | 1.5 | **4.5** | 상동 |
+| `wave.midBossHealth` | 220 | **600** | 상동 |
+| `wave.midBossDamage` | 10 | **18** | 상동 |
+| `wave.bigBossHealth` | 600 | **1600** | 상동 |
+| `wave.bigBossDamage` | 18 | **30** | 상동 |
 | `DIFFICULTY_GATES`(11/21스테 배율) | 없음(백엔드엔 이 개념 자체가 없음) | ×2.6 / ×2.6 | 방치형 체감 완화를 위해 신규 추가 |
+| `stageRewardChoice.*AttackBoost/HealthBoost`(atkFlat/hpFlat) | 스테이지 무관 고정값 | 고정값이지만 **더 작게** (예: normal 5/16→3/10) + stage 비례 가산분(`+floor(stage/4)`, `+stage*2`) 완전 제거 | "스탯 보상만 계속 골라도 무기 합성 없이 자동 클리어됨" 버그성 밸런스 문제 발견 — 무기 레벨(10강)이 메인 딜러가 되도록 보조 수단 비중을 낮춤 |
 
 그 외 무기 6종 기초스탯, 레벨 배율 15단, 스킬 누적보너스, 방어구 등급별 굴림범위, 자판기 비용/확률,
 웨이브 스케일 곡선의 형태(`1+0.035*(stage-1)` + 11/21스테 게이트), 몹 수 공식, 골드 공식, 그리드/파티슬롯
