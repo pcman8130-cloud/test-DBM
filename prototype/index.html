@@ -1086,17 +1086,22 @@
     DIFFICULTY_GATES.forEach(function(g){ if(stage>=g.stage) scale *= g.mult; });
     return scale;
   }
+  // 5/10스테는 게임 최초의 보스라 아직 장비가 약할 때 마주치는 만큼, 전체 보스 곡선과
+  // 별개로 30% 하향 — 15/25(중간보스), 20/30(대형보스)는 그대로 둠.
+  var BOSS_STAGE_OVERRIDES = { 5: 0.7, 10: 0.7 };
+  function bossStageMult(stage){ return BOSS_STAGE_OVERRIDES[stage] || 1; }
   function makeWave(stage){
     var scale = scaleAt(stage);
     var tier = tierOf(stage);
     var info = getStageInfo(stage);
+    var bossMult = bossStageMult(stage);
     if(tier==='boss'){
-      var hp = Math.round(1600*scale);
-      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:30*scale, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
+      var hp = Math.round(1600*scale*bossMult);
+      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:30*scale*bossMult, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     if(tier==='mid'){
-      var hp = Math.round(600*scale);
-      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:18*scale, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
+      var hp = Math.round(600*scale*bossMult);
+      return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:18*scale*bossMult, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     var count = 3 + Math.floor(stage/4);
     var list=[];
