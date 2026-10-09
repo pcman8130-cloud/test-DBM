@@ -508,7 +508,7 @@
   };
   var WEAPON_TYPES = Object.keys(WEAPONS);
   var LEVEL_MULT = [1.00,1.35,1.75,2.15,2.55,2.95,3.35,3.75,4.15,4.60,5.30,6.10,7.10,8.30,10.00];
-  var SKILL_FLAT_BONUS = [0, 0.15, 0.50, 1.15]; // 스킬 티어(0~3)별 누적 전투력 보너스 (백엔드 WeaponCatalog.SkillBonusAt와 동기화)
+  var SKILL_FLAT_BONUS = [0, 0.52, 0.87, 1.52]; // 스킬 티어(0~3)별 누적 전투력 보너스 (백엔드 WeaponCatalog.SkillBonusAt와 동기화)
 
   // 기획서 4.3절 무기별 Lv.5/10/15 스킬 마일스톤 — 실제 전투 효과로 구현
   var WEAPON_SKILLS = {
@@ -517,7 +517,7 @@
     dagger:{ name:'암살', icon:'🗡️', desc:'공격 시 확률로 고배율 암살타 발동', assassinateChance:[0,0.20,0.30,0.40], assassinateMult:[1,2.0,2.5,3.2], apsBonus:[0,0,0,0] },
     bow:{ name:'속사', icon:'🏹', desc:'공격속도가 대폭 증가', apsBonus:[0,0.4,0.7,1.1] },
     staff:{ name:'비전 폭발', icon:'🔮', desc:'공격이 모든 몬스터에게 광역 피해', aoeRatio:[0,0.6,0.8,1.0], apsBonus:[0,0,0,0] },
-    bible:{ name:'광역 회복', icon:'📖', desc:'Lv.5부터 공격 시 추가로 파티 전원을 회복', healRatio:[0,0.5,0.8,1.2], apsBonus:[0,0,0,0] }
+    bible:{ name:'광역 회복', icon:'📖', desc:'Lv.5부터 공격 시 추가로 파티 전원을 회복', healRatio:[0,0.25,0.4,0.6], apsBonus:[0,0,0,0] }
   };
   function skillTier(level){ return level>=15?3:level>=10?2:level>=5?1:0; }
   var MAX_LEVEL = LEVEL_MULT.length;
@@ -529,28 +529,28 @@
     legendary:{ label:'레전더리', color:'var(--rarity-legendary)', hp:[70,120], atk:[0.09,0.15], dodge:[0.07,0.12] }
   };
 
-  // 스테이지 클리어 보상은 3개의 "상자"(장비/특수/능력치) 중 하나를 고르고, 상자를 열 때 안에서 한 번 더 굴린다(2중 가챠).
+  // 스테이지 클리어 보상은 3개의 "상자"(장비/특수/능력치) 중 하나를 고르면, 그 상자에서 나온 결과 후보 3개를 미리 보여 주고 그중 하나를 고르는 2중 선택이다.
   // 백엔드 StageRewardChoiceBalanceSection(DefaultBalance.json의 stageRewardChoice)과 같은 수치.
-  //  - 장비 상자: 무기(Lv.min~max) 또는 방어구. 5스테이지 구간(다음 보스 스테이지)마다 EQUIP_BANDS 표대로 나온다.
+  //  - 장비 상자: 후보 = 무기 1개 / 방어구 1개 / 골드. 무기 레벨·방어구 등급은 5스테이지 구간(다음 보스 스테이지)마다 EQUIP_BANDS 표대로 나온다.
   //    보스 스테이지(5·10·…)는 표 그대로(무기 레벨 균등), 일반 스테이지는 그 구간 보스 표를 기준으로 무기 최소 레벨을 1 낮추고
   //    그 "낮춘 최소 레벨"이 REGULAR_LOWEST_LEVEL_CHANCE 확률로 나온다. 방어구는 일반 스테이지에서 레어/에픽만, 전설은 보스 스테이지 표에만 있다.
-  //  - 특수 상자: 룬(속성 랜덤) 또는 유물. runeChance 확률로 룬, 나머지는 유물.
-  //  - 능력치 상자: 공격력%(현재 공격력의 %) / 체력(고정값) / 유틸(회피율·공격속도·쿨타임 감소 중 하나)을 균등하게 굴린다.
+  //  - 특수 상자: 후보 = 룬 또는 유물 3개(각각 runeChance 확률로 룬, 서로 다른 것).
+  //  - 능력치 상자: 후보 = 공격력%(현재 공격력의 %) / 체력(고정값) / 회피율 / 공격속도 / 쿨타임 감소 중 서로 다른 3개.
   //    공격력/체력은 `기본 + PerStage × 클리어한 스테이지`.
   var REWARD_CONFIG = {
-    normal:{ atkPct:0.06, atkPctPerStage:0.003, hp:10, hpPerStage:0.8, runeChance:0.5, utilScale:1 },
-    mid:   { atkPct:0.12, atkPctPerStage:0.004, hp:20, hpPerStage:1.5, runeChance:0.5, utilScale:1.5 },
-    boss:  { atkPct:0.20, atkPctPerStage:0.006, hp:35, hpPerStage:2,   runeChance:0.5, utilScale:2 }
+    normal:{ atkPct:0.03, atkPctPerStage:0.0015, hp:10, hpPerStage:0.4, runeChance:0.5, utilScale:1,   gold:18,  goldPerStage:0.75 },
+    mid:   { atkPct:0.06, atkPctPerStage:0.002, hp:20, hpPerStage:0.75, runeChance:0.5, utilScale:1.5, gold:40,  goldPerStage:1.5 },
+    boss:  { atkPct:0.10, atkPctPerStage:0.0036, hp:35, hpPerStage:1,   runeChance:0.5, utilScale:2,   gold:75,  goldPerStage:2.5 }
   };
   var EQUIP_BOX = { weaponChance:0.5 };
-  var REGULAR_LOWEST_LEVEL_CHANCE = 0.4;
+  var REGULAR_LOWEST_LEVEL_CHANCE = 0.5;
   var EQUIP_BANDS = [ // bossStage, 무기 레벨 범위, 보스 스테이지 방어구(에픽/전설 확률, 나머지 레어), 일반 스테이지 방어구(에픽 확률, 나머지 레어)
-    { bossStage:5,  wMin:3, wMax:4,  bossEpic:0.5, bossLegendary:0.0, regEpic:0.35 },
-    { bossStage:10, wMin:4, wMax:6,  bossEpic:0.5, bossLegendary:0.0, regEpic:0.40 },
-    { bossStage:15, wMin:5, wMax:7,  bossEpic:0.6, bossLegendary:0.0, regEpic:0.45 },
-    { bossStage:20, wMin:7, wMax:8,  bossEpic:0.7, bossLegendary:0.3, regEpic:0.60 },
-    { bossStage:25, wMin:8, wMax:9,  bossEpic:0.6, bossLegendary:0.4, regEpic:0.65 },
-    { bossStage:30, wMin:9, wMax:10, bossEpic:0.5, bossLegendary:0.5, regEpic:0.70 }
+    { bossStage:5,  wMin:2, wMax:3,  bossEpic:0.5, bossLegendary:0.0, regEpic:0.10 },
+    { bossStage:10, wMin:3, wMax:4,  bossEpic:0.5, bossLegendary:0.0, regEpic:0.12 },
+    { bossStage:15, wMin:4, wMax:5,  bossEpic:0.6, bossLegendary:0.0, regEpic:0.15 },
+    { bossStage:20, wMin:5, wMax:6,  bossEpic:0.7, bossLegendary:0.3, regEpic:0.20 },
+    { bossStage:25, wMin:6, wMax:7,  bossEpic:0.6, bossLegendary:0.4, regEpic:0.25 },
+    { bossStage:30, wMin:7, wMax:8, bossEpic:0.5, bossLegendary:0.5, regEpic:0.30 }
   ];
   function equipBandFor(stage){
     for(var i=0;i<EQUIP_BANDS.length;i++){ if(EQUIP_BANDS[i].bossStage>=stage) return EQUIP_BANDS[i]; }
@@ -571,13 +571,6 @@
   var ROLL_COST = 10;
   var SELL_REFUND_RATIO = 0.5;
   var ITEM_SELL_VALUE = Math.round(ROLL_COST*SELL_REFUND_RATIO); // 무기·방어구 공통, 레벨/등급 무관 고정
-
-  var RELICS = {
-    gold_coin:{ icon:'🪙', name:'황금 동전', desc:'몬스터 처치·스테이지 클리어 골드 획득 +15%' },
-    lucky_charm:{ icon:'🍀', name:'행운의 부적', desc:'파티 전원 회피율 +5%' },
-    discount_token:{ icon:'🎫', name:'할인 쿠폰', desc:'자판기 강화 비용 -15%' }
-  };
-  var RELIC_IDS = Object.keys(RELICS);
 
   var RUNES = {
     fire:{ icon:'🔥', name:'불꽃 룬', desc:'적중 시 화상(초당 피해) 부여', color:'#ff6b4a' },
@@ -642,34 +635,56 @@
     return STAGE_INFO[idx];
   }
 
-  /* ================= boss relics (기획 문서: 보스 유물 후보 10종) ================= */
-  var BOSS_RELICS = {
-    5:  [
-      { id:'chief_club', name:'족장의 곤봉', icon:'🏏', desc:'팀 전체 공격력 +10%' },
-      { id:'raider_flag', name:'약탈자의 깃발', icon:'🚩', desc:'몬스터 처치 골드 +20%, 보스 처치 골드 +40%' }
-    ],
-    10: [
-      { id:'ogre_fist', name:'오우거의 철권', icon:'👊', desc:'공격 시 20% 확률로 주변 몬스터에게 20% 피해의 충격파' },
-      { id:'tyrant_heart', name:'폭군의 심장', icon:'❤️', desc:'체력 +40, 체력이 50% 이하일 때 공격력 +25%' }
-    ],
-    15: [
-      { id:'salamander_core', name:'샐러맨더의 화염핵', icon:'🔥', desc:'모든 공격에 화상 효과가 자동으로 부여됨(룬 불필요)' },
-      { id:'lava_scale', name:'용암 비늘', icon:'🌋', desc:'체력이 20% 이하로 떨어지면 전투당 1회 최대체력 20%만큼 즉시 회복' }
-    ],
-    20: [
-      { id:'golem_core', name:'고대 골렘의 핵', icon:'🛡️', desc:'최대 체력 +25%, 회피 +8%' },
-      { id:'ancient_runestone', name:'태고의 룬석', icon:'🪨', desc:'피격 시 15% 확률로 공격자에게 반격 피해(공격력의 50%)' }
-    ],
-    25: [
-      { id:'wyvern_scale', name:'고대 와이번의 역린', icon:'🐲', desc:'공격 시 10% 확률로 즉시 추가 공격 1회 발동' }
-    ],
-    30: [
-      { id:'crimson_grail', name:'진홍빛 성배', icon:'🩸', desc:'모든 공격에 15% 흡혈 효과가 자동으로 부여됨(룬 불필요)' }
-    ]
+  /* ================= 유물 (백엔드 RelicCatalog와 같은 목록) =================
+     kind:'boss'  = 5·10·15·20·25·30스테이지 보스 처치 시 확정 선택(unlock = 그 보스 스테이지)
+     kind:'regular' = 특수 상자에서 나오는 일반 유물(unlock 스테이지 이후의 보상부터 등장, 중복 보유 없음)
+     mods = 보유 유물을 합산하는 효과 수치(퍼센트 0.1 = 10%, 음수는 감소). M()이 합계를 돌려준다. */
+  var RELIC_DEFS = {
+    // 5스테이지
+    goblin_wallet:   { icon:'👛', name:'탐욕의 고블린 지갑', desc:'모든 골드 획득량 +25%, 받는 피해 +5%', kind:'boss', unlock:5, mods:{ goldGainPct:0.25, damageTakenPct:0.05 } },
+    command_flag:    { icon:'🚩', name:'전투 지휘 깃발', desc:'공격력 +10%, 공격속도 +10%', kind:'boss', unlock:5, mods:{ attackPct:0.10, aspdPct:0.10 } },
+    chief_epaulette: { icon:'🎖️', name:'족장의 견장', desc:'받는 피해 -5%', kind:'boss', unlock:5, mods:{ damageTakenPct:-0.05 } },
+    // 10스테이지
+    gauntlet:        { icon:'🥊', name:'괴력의 건틀렛', desc:'물리 무기(활·단검·검·방패) 공격력 +30%, 공격속도 -10%', kind:'boss', unlock:10, mods:{ physAttackPct:0.30, physAspdPct:-0.10 } },
+    orc_shaman:      { icon:'🪄', name:'오크 주술사의 축복', desc:'성서가 기본공격 대신 공격력만큼 가장 체력이 낮은 아군을 치유', kind:'boss', unlock:10, mods:{ bibleHealer:true } },
+    ogre_blood:      { icon:'🩸', name:'오우거의 피', desc:'최대 체력 +50', kind:'boss', unlock:10, mods:{ hpFlat:50 } },
+    // 15스테이지
+    salamander_claw: { icon:'🔥', name:'셀레멘더의 발톱', desc:'모든 공격에 화염 속성 부여(불 룬 장착 시 화염 도트 피해 ×1.5)', kind:'boss', unlock:15, mods:{ fireAttacks:true, fireRuneDotMult:1.5 } },
+    mystic_cloak:    { icon:'🧥', name:'신비주의자의 망토', desc:'회피율 +15%, 공격속도 +10%', kind:'boss', unlock:15, mods:{ dodge:0.15, aspdPct:0.10 } },
+    flame_tail:      { icon:'☄️', name:'불꽃 꼬리', desc:'근접 무기(검·단검·방패) 공격 시 25% 확률로 공격력의 125% 범위 피해', kind:'boss', unlock:15, mods:{ meleeAoeChance:0.25, meleeAoeRatio:1.25 } },
+    // 20스테이지
+    rune_tablet:     { icon:'🪧', name:'룬이 새겨진 석판', desc:'스킬 쿨타임 -15%, 마법 무기(성서·지팡이) 쿨타임 -10% 추가 및 공격력 +15%', kind:'boss', unlock:20, mods:{ cdr:0.15, magicCdr:0.10, magicAttackPct:0.15 } },
+    ancient_guardian:{ icon:'🗿', name:'고대의 수호자', desc:'최대 체력 +20%, 적의 범위 공격 피해 -30%', kind:'boss', unlock:20, mods:{ hpPct:0.20, aoeDamageTakenPct:-0.30 } },
+    ancient_coin:    { icon:'🪙', name:'고대 주화', desc:'100골드를 얻고, 무기 한 종류를 골라 이후 자판기·보상에서 나오지 않게 함', kind:'boss', unlock:20, mods:{}, goldOnPick:100, bansWeapon:true },
+    // 25스테이지
+    dragon_orb:      { icon:'🔮', name:'용의 보주', desc:'스킬 쿨타임 -20%, 스킬 피해 +20%', kind:'boss', unlock:25, mods:{ cdr:0.20, skillDamage:0.20 } },
+    scale_wing:      { icon:'🪽', name:'비늘날개 장식', desc:'공격속도 +10%, 기본 공격 시 20% 확률로 한 번 더 공격', kind:'boss', unlock:25, mods:{ aspdPct:0.10, extraAttackChance:0.20 } },
+    // 30스테이지(최종 보스)
+    crimson_grail:   { icon:'🩸', name:'진홍빛 성배', desc:'모든 공격에 15% 흡혈 효과가 자동으로 부여됨(룬 불필요)', kind:'boss', unlock:30, mods:{ holyAttacks:true } },
+
+    // 일반 유물: 1스테이지부터
+    mercenary_shield:{ icon:'🛡️', name:'용병단의 방패', desc:'받는 피해 -5%', kind:'regular', unlock:1, mods:{ damageTakenPct:-0.05 } },
+    battle_horn:     { icon:'📯', name:'전투나팔', desc:'공격력 +5%', kind:'regular', unlock:1, mods:{ attackPct:0.05 } },
+    shadow_cloak:    { icon:'🕶️', name:'그림자 망토', desc:'회피율 +5%', kind:'regular', unlock:1, mods:{ dodge:0.05 } },
+    goblin_pouch:    { icon:'💰', name:'고블린 주머니', desc:'몬스터 처치 시 골드 +3', kind:'regular', unlock:1, mods:{ goldPerKill:3 } },
+    harpy_feather:   { icon:'🪶', name:'하피의 깃털', desc:'공격속도 +5%', kind:'regular', unlock:1, mods:{ aspdPct:0.05 } },
+    // 일반 유물: 11스테이지부터
+    trick_coin:      { icon:'🎟️', name:'속임수 동전', desc:'자판기 뽑기 시 25% 확률로 다음 뽑기 무료', kind:'regular', unlock:11, mods:{ freeRoll:0.25 } },
+    first_aid_kit:   { icon:'🧰', name:'구급상자', desc:'초당 체력 +1 회복', kind:'regular', unlock:11, mods:{ regen:1 } },
+    broken_hourglass:{ icon:'⌛', name:'부서진 모래시계', desc:'스킬 쿨타임 -10%', kind:'regular', unlock:11, mods:{ cdr:0.10 } },
+    bloodstone:      { icon:'💎', name:'혈석', desc:'공격 시 체력 3 회복', kind:'regular', unlock:11, mods:{ healOnAttack:3 } },
+    giant_slayer:    { icon:'🪓', name:'거인 학살자', desc:'보스에게 주는 피해 +10%', kind:'regular', unlock:11, mods:{ bossDamagePct:0.10 } },
+    // 일반 유물: 21스테이지부터
+    expedition_badge:{ icon:'🏅', name:'원정대의 뱃지', desc:'보스에게 받는 피해 -10%', kind:'regular', unlock:21, mods:{ bossDamageTakenPct:-0.10 } },
+    scorched_shield: { icon:'🪵', name:'그을린 고목 방패', desc:'전투 시작 시 50의 보호막', kind:'regular', unlock:21, mods:{ startShield:50 } },
+    cross_pendant:   { icon:'✝️', name:'십자가 펜던트', desc:'스킬 효과 +10% 증폭', kind:'regular', unlock:21, mods:{ skillAmp:0.10 } },
+    blood_epaulette: { icon:'🎗️', name:'핏빛 견장', desc:'최대 체력 +25', kind:'regular', unlock:21, mods:{ hpFlat:25 } }
   };
-  var BOSS_RELIC_LOOKUP = {};
-  Object.keys(BOSS_RELICS).forEach(function(st){
-    BOSS_RELICS[st].forEach(function(r){ BOSS_RELIC_LOOKUP[r.id] = r; });
+  var BOSS_RELICS = {};
+  var BOSS_RELIC_LOOKUP = RELIC_DEFS;
+  Object.keys(RELIC_DEFS).forEach(function(id){
+    var d = RELIC_DEFS[id]; d.id = id;
+    if(d.kind==='boss'){ (BOSS_RELICS[d.unlock] = BOSS_RELICS[d.unlock] || []).push(d); }
   });
 
   /* ================= state ================= */
@@ -706,6 +721,9 @@
     ],
     monsters: [],
     rewardOptions: null,
+    rewardReveal: null,
+    bannedWeapons: {},   // 고대 주화로 막은 무기 종류(이후 자판기·보상에서 안 나옴)
+    nextRollFree: false, // 속임수 동전: 다음 뽑기 무료
     log: []
   };
 
@@ -778,26 +796,56 @@
 
   /* ================= relics ================= */
   function hasBossRelic(id){ return !!state.bossRelics[id]; }
-  function goldMult(isBossKill){
-    var m = 1 + 0.15*(state.relics.gold_coin||0);
-    if(hasBossRelic('raider_flag')) m += isBossKill ? 0.40 : 0.20;
+
+  // 보유 유물(보스 + 일반)의 효과 합계. 유물이 바뀔 때만 invalidateMods()로 다시 계산한다.
+  var MOD_KEYS = ['attackPct','aspdPct','physAttackPct','physAspdPct','magicAttackPct','bossDamagePct','damageTakenPct','bossDamageTakenPct',
+    'aoeDamageTakenPct','hpFlat','hpPct','dodge','startShield','regen','healOnAttack','goldGainPct','goldPerKill','freeRoll','cdr','magicCdr',
+    'skillAmp','skillDamage','meleeAoeChance','meleeAoeRatio','extraAttackChance'];
+  var modsCache = null;
+  function invalidateMods(){ modsCache = null; }
+  function M(){
+    if(modsCache) return modsCache;
+    var m = { fireAttacks:false, fireRuneDotMult:1, holyAttacks:false, bibleHealer:false };
+    MOD_KEYS.forEach(function(k){ m[k] = 0; });
+    Object.keys(state.relics).concat(Object.keys(state.bossRelics)).forEach(function(id){
+      var d = RELIC_DEFS[id]; if(!d) return;
+      var x = d.mods || {};
+      MOD_KEYS.forEach(function(k){ if(x[k]) m[k] += x[k]; });
+      if(x.fireAttacks) m.fireAttacks = true;
+      if(x.holyAttacks) m.holyAttacks = true;
+      if(x.bibleHealer) m.bibleHealer = true;
+      if(x.fireRuneDotMult) m.fireRuneDotMult = Math.max(m.fireRuneDotMult, x.fireRuneDotMult);
+    });
+    modsCache = m;
     return m;
   }
-  function relicDodgeBonus(){
-    var d = 0.05*(state.relics.lucky_charm||0);
-    if(hasBossRelic('golem_core')) d += 0.08;
-    return d;
+  function isPhysicalType(t){ return t==='sword' || t==='shield' || t==='dagger' || t==='bow'; }
+  function isMagicType(t){ return t==='staff' || t==='bible'; }
+  function isMeleeType(t){ return t==='sword' || t==='shield' || t==='dagger'; }
+  // 쿨타임 감소(능력치 상자 + 유물). 마법 무기는 유물의 추가 감소분도 받는다. 발동형 스킬(단검/방패)은 발동 확률 배율로,
+  // 마법 무기(지팡이·성서)는 시전(공격) 속도 배율로 근사한다.
+  function effectiveCdr(c){
+    var m = M();
+    return state.teamCdr + m.cdr + ((c.weapon && isMagicType(c.weapon.type)) ? m.magicCdr : 0);
   }
-  function upgradeCostMult(){
-    var disc = 0.15*(state.relics.discount_token||0);
-    return Math.max(0.15, 1 - disc);
+  function goldMult(isBossKill){ return 1 + M().goldGainPct; }
+  function relicDodgeBonus(){ return M().dodge; }
+  function upgradeCostMult(){ return 1; }
+  function relicPoolFor(clearedStage){
+    return Object.keys(RELIC_DEFS).filter(function(id){
+      var d = RELIC_DEFS[id];
+      return d.kind==='regular' && d.unlock<=clearedStage && !state.relics[id];
+    });
   }
-  function grantRelic(){
-    var id = RELIC_IDS[Math.floor(Math.random()*RELIC_IDS.length)];
-    state.relics[id] = (state.relics[id]||0) + 1;
-    var r = RELICS[id];
-    log('🏺 유물 <b>'+r.icon+' '+r.name+'</b> 획득! (보유 '+state.relics[id]+'개)');
-    return r;
+  function allowedWeaponTypes(){ return WEAPON_TYPES.filter(function(t){ return !state.bannedWeapons[t]; }); }
+  // 속임수 동전: 뽑을 때마다 다음 뽑기가 무료일 확률을 굴린다.
+  function rollFreeCheck(){
+    var chance = M().freeRoll;
+    if(chance>0 && Math.random()<chance){
+      state.nextRollFree = true;
+      log('🎟️ 속임수 동전! 다음 뽑기가 <b>무료</b>예요.');
+      toast('🎟️ 다음 뽑기 무료!');
+    }
   }
 
   /* ================= runes ================= */
@@ -901,30 +949,37 @@
     renderAll();
   }
   function rollWeapon(){
-    if(state.gold<ROLL_COST){ toast('골드가 부족해요 ('+ROLL_COST+'G 필요)'); return; }
+    var free = !!state.nextRollFree;
+    if(!free && state.gold<ROLL_COST){ toast('골드가 부족해요 ('+ROLL_COST+'G 필요)'); return; }
     var idx = firstEmptyCell();
     if(idx===-1){ toast('보관함이 가득 찼어요! 정리하거나 장착해주세요'); return; }
-    state.gold -= ROLL_COST;
-    var type = WEAPON_TYPES[Math.floor(Math.random()*WEAPON_TYPES.length)];
+    if(!free) state.gold -= ROLL_COST;
+    state.nextRollFree = false;
+    var allowed = allowedWeaponTypes();
+    var type = allowed[Math.floor(Math.random()*allowed.length)];
     var lvl = rollWeaponLevel();
     var item = { id:newId(), kind:'weapon', type:type, level:lvl, fresh:true, rune:null };
     state.grid[idx]=item;
     pulseBtn('rollWeaponBtn');
-    log('자판기에서 <b>'+WEAPONS[type].icon+' '+WEAPONS[type].name+(lvl>1?' Lv.'+lvl:'')+'</b>이(가) 나왔습니다!');
+    log('자판기에서 <b>'+WEAPONS[type].icon+' '+WEAPONS[type].name+(lvl>1?' Lv.'+lvl:'')+'</b>이(가) 나왔습니다!'+(free?' (무료)':''));
+    rollFreeCheck();
     tryAutoMerge();
     renderAll();
   }
   function rollArmor(){
-    if(state.gold<ROLL_COST){ toast('골드가 부족해요 ('+ROLL_COST+'G 필요)'); return; }
+    var free = !!state.nextRollFree;
+    if(!free && state.gold<ROLL_COST){ toast('골드가 부족해요 ('+ROLL_COST+'G 필요)'); return; }
     var idx = firstEmptyCell();
     if(idx===-1){ toast('보관함이 가득 찼어요! 정리하거나 장착해주세요'); return; }
-    state.gold -= ROLL_COST;
+    if(!free) state.gold -= ROLL_COST;
+    state.nextRollFree = false;
     var rarity = rollRarity();
     var r = ARMOR_RARITY[rarity];
     var item = { id:newId(), kind:'armor', rarity:rarity, hp:rndInt(r.hp[0],r.hp[1]), atk:rnd(r.atk[0],r.atk[1]), dodge:rnd(r.dodge[0],r.dodge[1]), fresh:true };
     state.grid[idx]=item;
     pulseBtn('rollArmorBtn');
-    log('자판기에서 <b>'+ARMOR_RARITY[rarity].label+' 방어구</b>가 나왔습니다!');
+    log('자판기에서 <b>'+ARMOR_RARITY[rarity].label+' 방어구</b>가 나왔습니다!'+(free?' (무료)':''));
+    rollFreeCheck();
     renderAll();
   }
   function pulseBtn(id){
@@ -1070,11 +1125,10 @@
 
   /* ================= stats ================= */
   function computeCharStats(c){
-    var w = c.weapon, a = c.armor;
+    var w = c.weapon, a = c.armor, m = M();
+    var phys = !!(w && isPhysicalType(w.type)), magic = !!(w && isMagicType(w.type));
     var baseHp = 90 + (w?WEAPONS[w.type].hp:0) + (a?a.hp:0);
-    var newMaxHp = Math.round(baseHp) + state.teamHpFlat;
-    if(hasBossRelic('tyrant_heart')) newMaxHp += 40;
-    if(hasBossRelic('golem_core')) newMaxHp = Math.round(newMaxHp*1.25);
+    var newMaxHp = Math.round((Math.round(baseHp) + state.teamHpFlat + m.hpFlat) * (1 + m.hpPct));
     c.maxHp = newMaxHp;
     if(c.hp>c.maxHp) c.hp = c.maxHp;
     if(w){
@@ -1082,10 +1136,11 @@
       var atk = WEAPONS[w.type].dmg * LEVEL_MULT[w.level-1];
       atk *= (1 + SKILL_FLAT_BONUS[tier]);
       atk = (atk + state.teamAtkFlat) * (1 + state.teamAtkPct);
-      if(hasBossRelic('chief_club')) atk *= 1.10;
+      atk *= (1 + m.attackPct + (phys ? m.physAttackPct : 0) + (magic ? m.magicAttackPct : 0));
       c.atk = atk;
       // 방어구의 'atk' 굴림값은 백엔드에서 공격력이 아니라 공격속도 보너스(AttackSpeedBonus)로 적용된다
-      c.aps = WEAPONS[w.type].aps * (1 + (a?a.atk:0) + state.teamAspd) * (1 + WEAPON_SKILLS[w.type].apsBonus[tier]);
+      c.aps = WEAPONS[w.type].aps * (1 + (a?a.atk:0) + state.teamAspd + m.aspdPct + (phys ? m.physAspdPct : 0))
+        * (1 + WEAPON_SKILLS[w.type].apsBonus[tier]) * (magic ? (1 + effectiveCdr(c)) : 1);
     } else {
       c.atk = 0; c.aps = 0;
     }
@@ -1106,8 +1161,8 @@
   // 11/21스테이지에 실질적인 난이도 벽을 얹어서 그 시점엔 장비 재정비가 강제되게 함.
   // 팀 회의에서 유물/시너지 기획이 확정되면 이 배율(mult)을 다시 조정하면 됨.
   var DIFFICULTY_GATES = [
-    { stage: 11, mult: 2.6 },
-    { stage: 21, mult: 2.6 }
+    { stage: 11, mult: 2.3 },
+    { stage: 21, mult: 2.3 }
   ];
   function scaleAt(stage){
     var scale = 1 + 0.035*(stage-1);
@@ -1116,7 +1171,9 @@
   }
   // 5/10/15/20/25/30스테는 전체 보스 곡선(특히 11/21스테 난이도 게이트 이후)이 과했다는
   // 플레이테스트 피드백으로 전부 30% 하향.
-  var BOSS_STAGE_OVERRIDES = { 5: 0.7, 10: 0.7, 15: 0.7, 20: 0.7, 25: 0.7, 30: 0.7 };
+  // 5·10스테이지 보스만 따로 조정하는 배율(백엔드 wave.stage5BossMultiplier / stage10BossMultiplier와 동일, 기본 1.0).
+  var STAGE5_BOSS_MULT = 1.12, STAGE10_BOSS_MULT = 1.05, STAGE20_BOSS_MULT = 0.95, STAGE30_BOSS_MULT = 1.0;
+  var BOSS_STAGE_OVERRIDES = { 5: 0.7*STAGE5_BOSS_MULT, 10: 0.7*STAGE10_BOSS_MULT, 15: 0.7, 20: 0.7*STAGE20_BOSS_MULT, 25: 0.7, 30: 0.7*STAGE30_BOSS_MULT };
   function bossStageMult(stage){ return BOSS_STAGE_OVERRIDES[stage] || 1; }
   function makeWave(stage){
     var scale = scaleAt(stage);
@@ -1124,17 +1181,17 @@
     var info = getStageInfo(stage);
     var bossMult = bossStageMult(stage);
     if(tier==='boss'){
-      var hp = Math.round(1600*scale*bossMult);
+      var hp = Math.round(1750*scale*bossMult);
       return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:30*scale*bossMult, aps:0.5, atkTimer:0.6, alive:true, gold:120+4*stage, isBoss:true, bossTier:'boss', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     if(tier==='mid'){
-      var hp = Math.round(600*scale*bossMult);
+      var hp = Math.round(580*scale*bossMult);
       return [{ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:18*scale*bossMult, aps:0.6, atkTimer:0.6, alive:true, gold:40+2*stage, isBoss:true, bossTier:'mid', specialTimer:5, burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 }];
     }
     var count = 3 + Math.floor(stage/4);
     var list=[];
     for(var i=0;i<count;i++){
-      var hp = Math.round(55*scale*rnd(0.9,1.1));
+      var hp = Math.round(68*scale*rnd(0.9,1.1));
       list.push({ id:newId(), name:info.name, icon:info.icon, hp:hp, maxHp:hp, dmg:4.5*scale, aps:rnd(0.6,0.9), atkTimer:rnd(0.2,1.2), alive:true, gold:3+Math.floor(stage/2), burn:null, poisonStacks:0, poisonRemaining:0, slowRemaining:0 });
     }
     return list;
@@ -1153,6 +1210,8 @@
     if(state.selected && state.selected.loc==='char') state.selected=null;
     state.selectedRune = null;
     state.phase='combat';
+    var startShield = M().startShield; // 그을린 고목 방패: 전투 시작 시 보호막(이전 전투의 보호막은 이월되지 않음)
+    state.characters.forEach(function(c){ c.shield = startShield; });
     var tier=tierOf(state.stage);
     var info=getStageInfo(state.stage);
     if(tier!=='normal') log(info.icon+' <b>'+info.name+'</b> 전투 시작!');
@@ -1191,7 +1250,7 @@
     if(!m.alive || m.hp>0) return;
     m.alive = false;
     var el = monsterEl(m);
-    var goldGain = Math.round(m.gold*goldMult(m.isBoss));
+    var goldGain = Math.round(m.gold*goldMult(m.isBoss)) + Math.round(M().goldPerKill);
     state.gold += goldGain;
     log(m.icon+' '+m.name+' 처치! <b>+'+goldGain+'G</b>');
     if(el) spawnFloat(el.querySelector('.dmg-layer'), '+'+goldGain+'G', 'gold');
@@ -1218,15 +1277,18 @@
   }
   function applyRuneOnHit(c, target, dmg){
     var rune = c.weapon && c.weapon.rune;
-    var hasFire = rune==='fire' || hasBossRelic('salamander_core');
-    var hasHoly = rune==='holy' || hasBossRelic('crimson_grail');
+    var mm = M();
+    var hasFire = rune==='fire' || mm.fireAttacks;
+    var hasHoly = rune==='holy' || mm.holyAttacks;
 
     if(hasFire){
-      setBurn(target, ELEMENT_FX.fireBurnDps, ELEMENT_FX.fireBurnDuration);
+      // 셀레멘더의 발톱: 불 룬을 이미 장착했다면 화염 도트 피해 ×1.5
+      var dotMult = (rune==='fire' && mm.fireAttacks) ? mm.fireRuneDotMult : 1;
+      setBurn(target, ELEMENT_FX.fireBurnDps*dotMult, ELEMENT_FX.fireBurnDuration);
       if(ELEMENT_FX.fireSplashRatio>0){
         state.monsters.forEach(function(other){
           if(other!==target && other.alive){
-            setBurn(other, ELEMENT_FX.fireBurnDps*ELEMENT_FX.fireSplashRatio, ELEMENT_FX.fireBurnDuration);
+            setBurn(other, ELEMENT_FX.fireBurnDps*dotMult*ELEMENT_FX.fireSplashRatio, ELEMENT_FX.fireBurnDuration);
           }
         });
       }
@@ -1252,9 +1314,6 @@
       c.hp = Math.min(c.maxHp, c.hp + heal);
       var cel = document.querySelector('.char-mirror[data-id="'+c.id+'"]');
       if(cel) spawnFloat(cel.querySelector('.dmg-layer'), '+'+Math.round(heal*10)/10, 'heal');
-    }
-    if(hasBossRelic('ogre_fist') && Math.random()<0.20){
-      splashOthers(target, dmg, 0.20, '👊 오우거의 철권 충격파!');
     }
   }
 
@@ -1292,6 +1351,23 @@
     });
   }
 
+  // 받는 피해 보정: 용병단의 방패·족장의 견장(받는 피해), 원정대의 뱃지(보스에게 받는 피해), 고대의 수호자(범위 공격 피해)
+  function mitigate(raw, fromBoss, aoe){
+    var mm = M();
+    var mult = 1 + mm.damageTakenPct + (fromBoss ? mm.bossDamageTakenPct : 0);
+    if(aoe) mult *= (1 + mm.aoeDamageTakenPct);
+    return raw*Math.max(0.1, mult);
+  }
+  // 보호막(그을린 고목 방패)이 먼저 피해를 흡수한다.
+  function damageChar(target, dmg){
+    if((target.shield||0)>0){
+      var absorbed = Math.min(target.shield, dmg);
+      target.shield -= absorbed;
+      dmg -= absorbed;
+    }
+    target.hp = Math.max(0, target.hp - dmg);
+  }
+
   function performMonsterAttack(m){
     var target = pickCharTarget();
     if(!target) return;
@@ -1301,35 +1377,23 @@
       log(target.name+'이(가) '+m.name+'의 공격을 <b>회피</b>했습니다.');
       return;
     }
-    var dmg = Math.round(m.dmg*10)/10;
-    target.hp = Math.max(0, target.hp - dmg);
+    var dmg = Math.round(mitigate(m.dmg, !!m.isBoss, false)*10)/10;
+    damageChar(target, dmg);
     if(el){ spawnFloat(el.querySelector('.dmg-layer'), '-'+dmg, 'hit'); el.classList.remove('hitflash'); void el.offsetWidth; el.classList.add('hitflash'); }
     log(m.icon+' '+m.name+'이(가) <b>'+target.name+'</b>에게 '+dmg+' 피해!');
 
-    if(hasBossRelic('ancient_runestone') && Math.random()<0.15){
-      var counterDmg = Math.round(target.atk*0.5*10)/10;
-      log('🪨 태고의 룬석! <b>'+target.name+'</b>이(가) '+m.name+'에게 반격 피해 '+counterDmg+'!');
-      dealDamageToMonster(m, counterDmg, 'hit');
-    }
-    if(hasBossRelic('lava_scale') && !target.lavaScaleUsed && target.hp>0 && target.hp/target.maxHp<=0.2){
-      target.lavaScaleUsed = true;
-      var healAmt = Math.round(target.maxHp*0.2);
-      target.hp = Math.min(target.maxHp, target.hp+healAmt);
-      log('🌋 용암 비늘! <b>'+target.name+'</b>이(가) 즉시 '+healAmt+' 회복했습니다!');
-      if(el) spawnFloat(el.querySelector('.dmg-layer'), '+'+healAmt, 'heal');
-    }
     if(target.hp<=0){ target.alive=false; log('💀 <b>'+target.name+'</b>이(가) 쓰러졌습니다!'); }
   }
 
-  function hitCharacter(target, dmg, label){
+  function hitCharacter(target, dmg, label, aoe){
     var el = document.querySelector('.char-mirror[data-id="'+target.id+'"]');
     if(Math.random() < target.dodge){
       spawnFloat(el && el.querySelector('.dmg-layer'), '회피!', 'miss');
       log('<b>'+target.name+'</b>이(가) '+label+'을(를) 회피했습니다!');
       return;
     }
-    dmg = Math.round(dmg*10)/10;
-    target.hp = Math.max(0, target.hp - dmg);
+    dmg = Math.round(mitigate(dmg, true, !!aoe)*10)/10;
+    damageChar(target, dmg);
     if(el){ spawnFloat(el.querySelector('.dmg-layer'), '-'+dmg, 'crit'); el.classList.remove('hitflash'); void el.offsetWidth; el.classList.add('hitflash'); }
     log('💥 <b>'+label+'</b>! <b>'+target.name+'</b>이(가) '+dmg+' 피해를 입었습니다!');
     if(target.hp<=0){ target.alive=false; log('💀 <b>'+target.name+'</b>이(가) 쓰러졌습니다!'); }
@@ -1340,14 +1404,14 @@
       var target = pickCharTarget();
       if(!target) return;
       log('⚡ <b>'+m.name+'</b>이(가) 강타를 준비합니다!');
-      hitCharacter(target, m.dmg*1.8, m.name+'의 강타');
+      hitCharacter(target, m.dmg*1.8, m.name+'의 강타', false);
     } else if(m.bossTier==='boss'){
       // 광역기는 전열 탱킹을 무시하고 파티 전원을 동시에 때리므로, 단일 대상 평타보다도
       // 인당 배율을 낮게 잡아야 함(몹 기초스탯을 여러 차례 상향한 뒤로 0.7배가 적정선).
       log('🌀 <b>'+m.name+'</b>이(가) 광역 강습을 발동합니다!');
       state.characters.forEach(function(c){
         if(!c.alive || !isCombatant(c)) return;
-        hitCharacter(c, m.dmg*0.7, m.name+'의 광역 강습');
+        hitCharacter(c, m.dmg*0.7, m.name+'의 광역 강습', true);
       });
     }
   }
@@ -1355,18 +1419,36 @@
   function performCharAttack(c, isExtra){
     var target = pickMonsterTarget();
     if(!target) return;
+    var mm = M();
+
+    // 오크 주술사의 축복: 성서는 기본공격 대신 공격력만큼 가장 체력 비율이 낮은 아군을 치유한다(피해는 주지 않는다).
+    if(mm.bibleHealer && c.weapon && c.weapon.type==='bible'){
+      var wounded = null;
+      state.characters.forEach(function(o){ if(o.alive && (!wounded || o.hp/o.maxHp < wounded.hp/wounded.maxHp)) wounded = o; });
+      if(wounded){
+        var healAmt0 = Math.round(c.atk*(1+mm.skillAmp+mm.skillDamage)*10)/10;
+        wounded.hp = Math.min(wounded.maxHp, wounded.hp+healAmt0);
+        var hel0 = document.querySelector('.char-mirror[data-id="'+wounded.id+'"]');
+        if(hel0) spawnFloat(hel0.querySelector('.dmg-layer'), '+'+healAmt0, 'heal');
+        log('🪄 오크 주술사의 축복! <b>'+c.name+'</b>의 성서가 <b>'+wounded.name+'</b>을(를) <b>'+healAmt0+'</b> 치유했습니다.');
+      }
+      return;
+    }
+
+    var chanceMult = 1 + effectiveCdr(c);          // 쿨타임 감소 → 스킬 발동 확률 배율
+    var powerMult = 1 + mm.skillAmp + mm.skillDamage; // 스킬 증폭/피해 → 스킬 효과 크기 배율
     var variance = rnd(0.9,1.1);
     var dmg = c.atk*variance;
     if(c.weapon && c.weapon.rune==='dark') dmg *= (1+ELEMENT_FX.darkBonusRatio);
-    if(hasBossRelic('tyrant_heart') && c.hp/c.maxHp<=0.5) dmg *= 1.25;
+    if(target.isBoss) dmg *= (1 + mm.bossDamagePct);
 
     var assassinated = false;
     if(c.weapon){
       var tier0 = skillTier(c.weapon.level);
       if(c.weapon.type==='dagger' && tier0>0){
         var sk0 = WEAPON_SKILLS.dagger;
-        if(Math.random()<sk0.assassinateChance[tier0]*(1+state.teamCdr)){
-          dmg *= sk0.assassinateMult[tier0];
+        if(Math.random()<sk0.assassinateChance[tier0]*chanceMult){
+          dmg *= sk0.assassinateMult[tier0]*powerMult;
           assassinated = true;
         }
       }
@@ -1380,31 +1462,44 @@
     }
     dealDamageToMonster(target, dmg, assassinated?'crit':'hit');
     applyRuneOnHit(c, target, dmg);
-    applyWeaponSkill(c, target, dmg);
+    applyWeaponSkill(c, target, dmg, chanceMult, powerMult);
 
-    if(!isExtra && hasBossRelic('wyvern_scale') && Math.random()<0.10){
-      log('🐲 고대 와이번의 역린! 추가 공격 발동!');
+    // 혈석: 공격 시 체력 회복
+    if(mm.healOnAttack>0 && c.alive) c.hp = Math.min(c.maxHp, c.hp+mm.healOnAttack);
+
+    // 불꽃 꼬리: 근접 무기 공격 시 확률로 공격력의 N배 범위 피해(살아 있는 모든 몬스터)
+    if(mm.meleeAoeChance>0 && c.weapon && isMeleeType(c.weapon.type) && Math.random()<mm.meleeAoeChance){
+      var aoeAmt = Math.round(c.atk*mm.meleeAoeRatio*10)/10;
+      state.monsters.slice().forEach(function(o){ if(o.alive) dealDamageToMonster(o, aoeAmt, 'hit'); });
+      log('☄️ 불꽃 꼬리! 모든 몬스터에게 '+aoeAmt+' 범위 피해!');
+    }
+
+    // 비늘날개 장식: 기본 공격 시 확률로 한 번 더 공격(무한 연쇄 방지를 위해 최초 공격에서만)
+    if(!isExtra && mm.extraAttackChance>0 && Math.random()<mm.extraAttackChance){
+      log('🪽 비늘날개 장식! 추가 공격 발동!');
       performCharAttack(c, true);
     }
   }
 
-  function applyWeaponSkill(c, target, dmg){
+  function applyWeaponSkill(c, target, dmg, chanceMult, powerMult){
     var w = c.weapon;
     if(!w) return;
     var tier = skillTier(w.level);
     if(tier<=0) return;
+    chanceMult = chanceMult==null ? 1 : chanceMult;
+    powerMult = powerMult==null ? 1 : powerMult;
     var sk = WEAPON_SKILLS[w.type];
     if(w.type==='sword' && sk.cleaveRatio[tier]>0){
-      splashOthers(target, dmg, sk.cleaveRatio[tier], sk.icon+' 휩쓸기!');
-    } else if(w.type==='shield' && Math.random()<sk.stunChance[tier]*(1+state.teamCdr)){
-      target.atkTimer += sk.stunDuration[tier];
+      splashOthers(target, dmg, sk.cleaveRatio[tier]*powerMult, sk.icon+' 휩쓸기!');
+    } else if(w.type==='shield' && Math.random()<sk.stunChance[tier]*chanceMult){
+      target.atkTimer += sk.stunDuration[tier]*powerMult;
       log(sk.icon+' 밀치기! <b>'+target.name+'</b>이(가) 기절했습니다!');
       var el = monsterEl(target);
       if(el) spawnFloat(el.querySelector('.dmg-layer'), '기절!', 'miss');
     } else if(w.type==='staff' && sk.aoeRatio[tier]>0){
-      splashOthers(target, dmg, sk.aoeRatio[tier], sk.icon+' 비전 폭발!');
+      splashOthers(target, dmg, sk.aoeRatio[tier]*powerMult, sk.icon+' 비전 폭발!');
     } else if(w.type==='bible' && sk.healRatio[tier]>0){
-      var healAmt = Math.round(dmg*sk.healRatio[tier]*10)/10;
+      var healAmt = Math.round(dmg*sk.healRatio[tier]*powerMult*10)/10;
       var healedAny = false;
       state.characters.forEach(function(other){
         if(!other.alive || other.hp>=other.maxHp) return;
@@ -1425,6 +1520,8 @@
 
     if(state.phase==='combat'){
       tickMonsterStatuses(dt);
+      var regen = M().regen; // 구급상자: 초당 체력 회복
+      if(regen>0) state.characters.forEach(function(c){ if(c.alive) c.hp = Math.min(c.maxHp, c.hp+regen*dt); });
       var anyMonster=false;
       var engaged=0;
       state.monsters.forEach(function(m){
@@ -1479,6 +1576,7 @@
       armorEpic: isBossStage ? band.bossEpic : band.regEpic,
       armorLegendary: isBossStage ? band.bossLegendary : 0,
       runeChance: cfg.runeChance,
+      gold: Math.round(cfg.gold + cfg.goldPerStage*stage),
       atkPct: cfg.atkPct + cfg.atkPctPerStage*stage,
       hp: cfg.hp + cfg.hpPerStage*stage,
       dodge: STAT_UTILITY.dodge*cfg.utilScale,
@@ -1496,9 +1594,36 @@
 
   function grantBossRelic(id){
     state.bossRelics[id] = true;
-    var r = BOSS_RELIC_LOOKUP[id];
+    invalidateMods();
+    var r = RELIC_DEFS[id];
+    if(r.goldOnPick){ state.gold += r.goldOnPick; log('🪙 <b>'+r.name+'</b>: +'+r.goldOnPick+'G'); }
+    recomputeAllStats();
     log('⚜️ 보스 유물 <b>'+r.icon+' '+r.name+'</b> 획득! '+r.desc);
     toast('⚜️ 보스 유물 획득: '+r.icon+' '+r.name);
+  }
+  // 고대 주화: 이후 자판기·보상에서 나오지 않게 할 무기 종류를 하나 고른다(이미 가진 무기는 그대로).
+  function renderBanWeaponModal(){
+    var cards = allowedWeaponTypes().map(function(t){
+      var w = WEAPONS[t];
+      return '<button class="reward-card ban-card" data-type="'+t+'"><div class="ic">'+w.icon+'</div><div class="title">'+w.name+'</div><div class="desc">더 이상 나오지 않아요</div></button>';
+    }).join('');
+    var html = ''+
+      '<div class="overlay"><div class="modal">'+
+      '<h2>🪙 고대 주화</h2>'+
+      '<p class="sub">이후 자판기와 보상에서 나오지 않게 할 무기 한 종류를 고르세요. (이미 가진 무기는 그대로예요)</p>'+
+      '<div class="reward-options">'+cards+'</div>'+
+      '</div></div>';
+    document.getElementById('modalRoot').innerHTML = html;
+    document.querySelectorAll('.ban-card').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var t = btn.getAttribute('data-type');
+        state.bannedWeapons[t] = true;
+        log('🚫 <b>'+WEAPONS[t].icon+' '+WEAPONS[t].name+'</b>이(가) 더 이상 나오지 않습니다.');
+        toast('🚫 '+WEAPONS[t].name+' 제외');
+        closeModal();
+        renderRewardModal();
+      });
+    });
   }
   function renderBossRelicModal(stage, candidates){
     var info = getStageInfo(stage);
@@ -1515,7 +1640,9 @@
     document.getElementById('modalRoot').innerHTML = html;
     document.querySelectorAll('.boss-relic-card').forEach(function(btn){
       btn.addEventListener('click', function(){
-        grantBossRelic(btn.getAttribute('data-id'));
+        var pickedId = btn.getAttribute('data-id');
+        grantBossRelic(pickedId);
+        if(RELIC_DEFS[pickedId].bansWeapon){ renderBanWeaponModal(); return; }
         closeModal();
         renderRewardModal();
       });
@@ -1524,89 +1651,136 @@
 
   function fmtPct(v, digits){ return (v*100).toFixed(digits==null?1:digits)+'%'; }
 
-  /* 장비 상자: 무기(Lv.min~max) 또는 방어구(레어~에픽, 후반 중간보스/보스는 전설도). 보관함이 가득 차면 사라진다. */
-  function openEquipmentBox(o){
-    var idx = firstEmptyCell();
-    if(Math.random()<EQUIP_BOX.weaponChance){
-      var type = WEAPON_TYPES[Math.floor(Math.random()*WEAPON_TYPES.length)];
-      var lvl = o.weaponMin;
-      if(o.weaponMax>o.weaponMin){
-        // 일반 스테이지: 낮춘 최소 레벨이 weaponLowestChance 확률로 나오고, 나머지는 그 위 레벨들이 균등. 보스 스테이지: 범위 균등.
-        var lo = o.weaponMin;
-        if(o.weaponLowestChance>0){
-          if(Math.random()>=o.weaponLowestChance) lo = o.weaponMin+1; else lo = null;
-        }
-        lvl = (lo===null) ? o.weaponMin : lo + Math.floor(Math.random()*(o.weaponMax-lo+1));
+  /* ===== 상자 후보 굴리기: 상자를 고르면 결과 후보 3개를 미리 보여 주고, 그중 하나를 고른다 ===== */
+  function shuffled(list){
+    var a = list.slice();
+    for(var i=a.length-1;i>0;i--){ var j = Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+    return a;
+  }
+
+  // 장비 상자 후보: 무기 1개(종류·레벨 확정) / 방어구 1개(종류·등급 확정) / 골드
+  function candWeapon(o){
+    var allowedTypes = allowedWeaponTypes();
+    var type = allowedTypes[Math.floor(Math.random()*allowedTypes.length)];
+    var lvl = o.weaponMin;
+    if(o.weaponMax>o.weaponMin){
+      // 일반 스테이지: 낮춘 최소 레벨이 weaponLowestChance 확률로 나오고, 나머지는 그 위 레벨들이 균등. 보스 스테이지: 범위 균등.
+      var lo = o.weaponMin, useLowest = false;
+      if(o.weaponLowestChance>0){ if(Math.random()<o.weaponLowestChance) useLowest = true; else lo = o.weaponMin+1; }
+      lvl = useLowest ? o.weaponMin : lo + Math.floor(Math.random()*(o.weaponMax-lo+1));
+    }
+    return { kind:'weapon', icon:WEAPONS[type].icon, title:WEAPONS[type].name+' Lv.'+lvl, desc:'무기 · 보관함에 들어가요',
+             item:{ id:newId(), kind:'weapon', type:type, level:lvl, fresh:true, rune:null } };
+  }
+  function candArmor(o){
+    var r = Math.random();
+    var rarity = r<o.armorLegendary ? 'legendary' : r<o.armorLegendary+o.armorEpic ? 'epic' : 'rare';
+    var ar = ARMOR_RARITY[rarity];
+    var item = { id:newId(), kind:'armor', rarity:rarity, hp:rndInt(ar.hp[0],ar.hp[1]), atk:rnd(ar.atk[0],ar.atk[1]), dodge:rnd(ar.dodge[0],ar.dodge[1]), fresh:true };
+    return { kind:'armor', icon:'🛡️', title:ar.label+' 방어구',
+             desc:'체력 +'+item.hp+' · 공속 +'+fmtPct(item.atk,0)+' · 회피 +'+fmtPct(item.dodge,0), item:item };
+  }
+  function candGold(o){
+    var amt = Math.round(o.gold*goldMult());
+    return { kind:'gold', icon:'🪙', title:'골드', desc:'+'+amt+' G', amount:amt };
+  }
+  function revealEquipment(o){ return [candWeapon(o), candArmor(o), candGold(o)]; }
+
+  // 특수 상자 후보: 룬 또는 유물 3개(서로 다른 것). 유물은 클리어한 스테이지까지 해금된 일반 유물 중 아직 안 가진 것만,
+  // 룬은 룬 보관함에 빈 칸이 있을 때만 나온다.
+  function revealSpecial(o){
+    var list = [], runes = {}, relics = {}, guard = 0;
+    var pool = relicPoolFor(state.stage);
+    var runeAvail = firstEmptyRuneSlot()!==-1;
+    while(list.length<3 && guard++<200){
+      if(!pool.length && !runeAvail) break;
+      var wantRune = !pool.length ? true : (!runeAvail ? false : Math.random()<o.runeChance);
+      if(wantRune){
+        var rid = RUNE_IDS[Math.floor(Math.random()*RUNE_IDS.length)];
+        if(runes[rid]) continue; runes[rid]=true;
+        var ru = RUNES[rid];
+        list.push({ kind:'rune', icon:ru.icon, title:ru.name, desc:ru.desc, runeId:rid });
+      } else {
+        var lid = pool[Math.floor(Math.random()*pool.length)];
+        if(relics[lid]){ if(Object.keys(relics).length>=pool.length) pool = []; continue; }
+        relics[lid]=true;
+        var re = RELIC_DEFS[lid];
+        list.push({ kind:'relic', icon:re.icon, title:re.name, desc:re.desc, relicId:lid });
       }
-      var label = WEAPONS[type].icon+' '+WEAPONS[type].name+' Lv.'+lvl;
+    }
+    return list;
+  }
+
+  // 능력치 상자 후보: 5종 중 서로 다른 3개
+  function revealStat(o){
+    var all = [
+      { kind:'atk',   icon:'⚔️', title:'공격력 +'+fmtPct(o.atkPct), desc:'팀 전체 · 영구', amount:o.atkPct },
+      { kind:'hp',    icon:'❤️', title:'체력 +'+Math.round(o.hp), desc:'팀 전체 · 영구', amount:Math.round(o.hp) },
+      { kind:'dodge', icon:'💨', title:'회피율 +'+fmtPct(o.dodge), desc:'팀 전체 · 영구', amount:o.dodge },
+      { kind:'aspd',  icon:'⚡', title:'공격속도 +'+fmtPct(o.aspd), desc:'팀 전체 · 영구', amount:o.aspd },
+      { kind:'cdr',   icon:'⏳', title:'쿨타임 감소 '+fmtPct(o.cdr), desc:'기절·암살 발동 확률 증가 · 영구', amount:o.cdr }
+    ];
+    return shuffled(all).slice(0,3);
+  }
+
+  function claimCandidate(c){
+    if(c.kind==='weapon' || c.kind==='armor'){
+      var idx = firstEmptyCell();
+      var label = c.title;
       if(idx===-1){
-        log('🎁 장비 상자에서 <b>'+label+'</b>이(가) 나왔지만 보관함이 가득 차 사라졌습니다…');
+        log('🎁 <b>'+label+'</b>을(를) 골랐지만 보관함이 가득 차 사라졌습니다…');
         toast('보관함이 가득 차서 '+label+'이(가) 사라졌어요');
         return;
       }
-      state.grid[idx] = { id:newId(), kind:'weapon', type:type, level:lvl, fresh:true, rune:null };
-      log('🎁 장비 상자에서 <b>'+label+'</b>이(가) 나왔습니다!');
+      state.grid[idx] = c.item;
+      log('🎁 <b>'+label+'</b>을(를) 받았습니다!');
       toast('🎁 '+label+' 획득!');
-      tryAutoMerge();
+      if(c.kind==='weapon') tryAutoMerge();
+    } else if(c.kind==='gold'){
+      state.gold += c.amount;
+      log('🪙 골드 <b>+'+c.amount+'G</b>를 받았습니다!');
+      toast('+'+c.amount+'G 획득!');
+    } else if(c.kind==='rune'){
+      var ridx = firstEmptyRuneSlot();
+      if(ridx===-1){ toast('룬 보관함이 가득 차 있어요'); return; }
+      state.runeInventory[ridx] = { id:newId(), element:c.runeId };
+      var r = RUNES[c.runeId];
+      log('🔮 룬 <b>'+r.icon+' '+r.name+'</b> 획득! 룬 보관함에서 무기에 장착할 수 있어요.');
+      toast('🔮 룬 획득: '+r.icon+' '+r.name);
+    } else if(c.kind==='relic'){
+      state.relics[c.relicId] = 1;
+      invalidateMods();
+      recomputeAllStats();
+      var rl = RELIC_DEFS[c.relicId];
+      log('🏺 유물 <b>'+rl.icon+' '+rl.name+'</b> 획득! '+rl.desc);
+      toast('🏺 유물 획득: '+rl.icon+' '+rl.name);
     } else {
-      var r = Math.random();
-      var rarity = r<o.armorLegendary ? 'legendary' : r<o.armorLegendary+o.armorEpic ? 'epic' : 'rare';
-      var ar = ARMOR_RARITY[rarity];
-      if(idx===-1){
-        log('🎁 장비 상자에서 <b>'+ar.label+' 방어구</b>가 나왔지만 보관함이 가득 차 사라졌습니다…');
-        toast('보관함이 가득 차서 '+ar.label+' 방어구가 사라졌어요');
-        return;
-      }
-      state.grid[idx] = { id:newId(), kind:'armor', rarity:rarity, hp:rndInt(ar.hp[0],ar.hp[1]), atk:rnd(ar.atk[0],ar.atk[1]), dodge:rnd(ar.dodge[0],ar.dodge[1]), fresh:true };
-      log('🎁 장비 상자에서 <b>'+ar.label+' 방어구</b>가 나왔습니다!');
-      toast('🎁 '+ar.label+' 방어구 획득!');
+      var msg;
+      if(c.kind==='atk'){ state.teamAtkPct += c.amount; msg = '팀 공격력 +'+fmtPct(c.amount)+' (누적 +'+fmtPct(state.teamAtkPct)+')'; }
+      else if(c.kind==='hp'){ state.teamHpFlat += c.amount; msg = '팀 체력 +'+c.amount+' (누적 +'+state.teamHpFlat+')'; }
+      else if(c.kind==='dodge'){ state.teamDodge += c.amount; msg = '팀 회피율 +'+fmtPct(c.amount)+' (누적 +'+fmtPct(state.teamDodge)+')'; }
+      else if(c.kind==='aspd'){ state.teamAspd += c.amount; msg = '팀 공격속도 +'+fmtPct(c.amount)+' (누적 +'+fmtPct(state.teamAspd)+')'; }
+      else { state.teamCdr += c.amount; msg = '팀 쿨타임 감소 '+fmtPct(c.amount)+' (누적 '+fmtPct(state.teamCdr)+')'; }
+      recomputeAllStats();
+      toast('💪 '+msg);
+      log('💪 능력치 상자: <b>'+msg+'</b> (영구)');
     }
   }
 
-  /* 특수 상자: runeChance 확률로 속성 룬, 나머지는 유물. */
-  function openSpecialBox(o){
-    if(Math.random()<o.runeChance){
-      var rune = grantRune();
-      if(rune){ toast('🔮 특수 상자에서 룬 발견! '+rune.icon+' '+rune.name); return; }
-      var fallback = grantRelic();
-      toast('🔮 룬 보관함이 가득 차 있어 대신 유물 발견! '+fallback.icon+' '+fallback.name);
-      return;
-    }
-    var relic = grantRelic();
-    toast('🔮 특수 상자에서 유물 발견! '+relic.icon+' '+relic.name);
-  }
-
-  /* 능력치 상자: 공격력% / 체력 / 유틸(회피·공속·쿨감 중 하나)을 균등하게 굴려 팀 전체에 영구 적용. */
-  function openStatBox(o){
-    var slot = Math.floor(Math.random()*3);
-    var msg, detail;
-    if(slot===0){
-      state.teamAtkPct += o.atkPct;
-      msg = '팀 공격력 +'+fmtPct(o.atkPct);
-      detail = '(누적 +'+fmtPct(state.teamAtkPct)+')';
-    } else if(slot===1){
-      var hp = Math.round(o.hp);
-      state.teamHpFlat += hp;
-      msg = '팀 체력 +'+hp;
-      detail = '(누적 +'+state.teamHpFlat+')';
-    } else {
-      var sub = Math.floor(Math.random()*3);
-      if(sub===0){ state.teamDodge += o.dodge; msg = '팀 회피율 +'+fmtPct(o.dodge); detail = '(누적 +'+fmtPct(state.teamDodge)+')'; }
-      else if(sub===1){ state.teamAspd += o.aspd; msg = '팀 공격속도 +'+fmtPct(o.aspd); detail = '(누적 +'+fmtPct(state.teamAspd)+')'; }
-      else { state.teamCdr += o.cdr; msg = '팀 쿨타임 감소 '+fmtPct(o.cdr); detail = '(누적 '+fmtPct(state.teamCdr)+')'; }
-    }
-    recomputeAllStats();
-    toast('💪 '+msg+' (영구)');
-    log('💪 능력치 상자: <b>'+msg+'</b> (영구) '+detail);
-  }
-
+  // 상자를 고르면(1단계) 후보 3개를 굴려 보여 주고(2단계) 하나를 고른다.
   function chooseReward(type){
     var o = state.rewardOptions;
-    if(type==='equip') openEquipmentBox(o);
-    else if(type==='special') openSpecialBox(o);
-    else if(type==='stat') openStatBox(o);
+    var cands = type==='equip' ? revealEquipment(o) : type==='special' ? revealSpecial(o) : revealStat(o);
+    state.rewardReveal = { box:type, cands:cands };
+    renderRevealModal();
+  }
+  function pickCandidate(idx){
+    var rv = state.rewardReveal;
+    if(!rv) return;
+    claimCandidate(rv.cands[idx]);
     closeModal();
-    state.rewardOptions=null;
+    state.rewardOptions = null;
+    state.rewardReveal = null;
     advanceStage();
   }
 
@@ -1634,7 +1808,7 @@
   function resetGame(){
     state.gold=50; state.stage=1; state.endless=false; state.teamAtkFlat=0; state.teamHpFlat=0;
     state.teamAtkPct=0; state.teamDodge=0; state.teamAspd=0; state.teamCdr=0;
-    state.weaponVendLevel=1; state.armorVendLevel=1; state.relics={}; state.bossRelics={};
+    state.weaponVendLevel=1; state.armorVendLevel=1; state.relics={}; state.bossRelics={}; state.bannedWeapons={}; state.nextRollFree=false; invalidateMods();
     state.gridUnlocked = GRID_START_CELLS;
     state.grid = new Array(16).fill(null);
     state.runeInventory = new Array(RUNE_INVENTORY_SIZE).fill(null);
@@ -1659,21 +1833,40 @@
     var armorLow = (1-o.armorEpic-o.armorLegendary)>0.0001 ? '레어' : '에픽';
     var armorHigh = o.armorLegendary>0 ? '레전더리' : '에픽';
     var armorRange = armorLow+'~'+armorHigh;
-    var gridFull = firstEmptyCell()===-1;
     var html = ''+
       '<div class="overlay"><div class="modal">'+
       '<h2>'+tierLabel+'</h2>'+
-      '<p class="sub">상자 셋 중 하나를 열어 보세요. 안에서 무엇이 나올지는 열 때 정해져요.</p>'+
+      '<p class="sub">상자 하나를 고르면 나온 결과 3개를 미리 보여 드려요. 그중 하나를 고르세요.</p>'+
       '<div class="reward-options">'+
-        '<button class="reward-card" data-choice="equip"><div class="ic">🗡️</div><div class="title">장비 상자</div><div class="desc">무기 Lv.'+o.weaponMin+(o.weaponMax>o.weaponMin?'~'+o.weaponMax:'')+'<br>또는 '+armorRange+' 방어구<br>(랜덤으로 하나)</div></button>'+
-        '<button class="reward-card" data-choice="special"><div class="ic">🔮</div><div class="title">특수 상자</div><div class="desc">속성 룬 또는 유물<br>(랜덤으로 하나)</div></button>'+
-        '<button class="reward-card" data-choice="stat"><div class="ic">💪</div><div class="title">능력치 상자</div><div class="desc">공격력 +'+fmtPct(o.atkPct)+' / 체력 +'+Math.round(o.hp)+'<br>회피·공속·쿨감 중 하나<br>(랜덤으로 하나, 영구)</div></button>'+
+        '<button class="reward-card" data-choice="equip"><div class="ic">🗡️</div><div class="title">장비 상자</div><div class="desc">무기 Lv.'+o.weaponMin+(o.weaponMax>o.weaponMin?'~'+o.weaponMax:'')+' · '+armorRange+' 방어구 · 골드<br>(결과를 보고 선택)</div></button>'+
+        '<button class="reward-card" data-choice="special"><div class="ic">🔮</div><div class="title">특수 상자</div><div class="desc">속성 룬 · 유물 3개 중<br>(결과를 보고 선택)</div></button>'+
+        '<button class="reward-card" data-choice="stat"><div class="ic">💪</div><div class="title">능력치 상자</div><div class="desc">공격력 +'+fmtPct(o.atkPct)+' · 체력 +'+Math.round(o.hp)+' · 회피 · 공속 · 쿨감<br>중 3개 (결과를 보고 선택, 영구)</div></button>'+
       '</div>'+
-      '<div class="modal-footnote">'+(gridFull ? '⚠️ 보관함이 가득 차 있어요 — 장비 상자에서 나온 장비는 사라집니다. ' : '')+'※ 룬은 합성해도 무기에 그대로 이어져요.</div>'+
+      '<div class="modal-footnote">※ 룬은 합성해도 무기에 그대로 이어져요.</div>'+
       '</div></div>';
     document.getElementById('modalRoot').innerHTML = html;
     document.querySelectorAll('.reward-card').forEach(function(btn){
       btn.addEventListener('click', function(){ chooseReward(btn.getAttribute('data-choice')); });
+    });
+  }
+  function renderRevealModal(){
+    var rv = state.rewardReveal;
+    var titles = { equip:'🗡️ 장비 상자', special:'🔮 특수 상자', stat:'💪 능력치 상자' };
+    var gridFull = firstEmptyCell()===-1;
+    var warn = (rv.box==='equip' && gridFull) ? '⚠️ 보관함이 가득 차 있어요 — 무기·방어구를 고르면 사라집니다. 골드를 고르는 것도 방법이에요.' : '고른 결과는 바로 받아요.';
+    var cards = rv.cands.map(function(c, i){
+      return '<button class="reward-card" data-idx="'+i+'"><div class="ic">'+c.icon+'</div><div class="title">'+c.title+'</div><div class="desc">'+c.desc+'</div></button>';
+    }).join('');
+    var html = ''+
+      '<div class="overlay"><div class="modal">'+
+      '<h2>'+titles[rv.box]+'</h2>'+
+      '<p class="sub">나온 결과 중 하나를 고르세요.</p>'+
+      '<div class="reward-options">'+cards+'</div>'+
+      '<div class="modal-footnote">'+warn+'</div>'+
+      '</div></div>';
+    document.getElementById('modalRoot').innerHTML = html;
+    document.querySelectorAll('.reward-card').forEach(function(btn){
+      btn.addEventListener('click', function(){ pickCandidate(parseInt(btn.getAttribute('data-idx'),10)); });
     });
   }
   function renderGameOverModal(){
@@ -1844,8 +2037,8 @@
       return '<div class="relic-chip boss has-tooltip" data-tooltip="'+r.desc+'"><span class="ic">'+r.icon+'</span><span>'+r.name+'</span><span class="mono relic-count">⚜️</span></div>';
     }).join('');
     var normalHtml = ids.map(function(id){
-      var r = RELICS[id], n = state.relics[id];
-      return '<div class="relic-chip has-tooltip" data-tooltip="'+r.desc+'"><span class="ic">'+r.icon+'</span><span>'+r.name+'</span><span class="mono relic-count">×'+n+'</span></div>';
+      var r = RELIC_DEFS[id];
+      return '<div class="relic-chip has-tooltip" data-tooltip="'+r.desc+'"><span class="ic">'+r.icon+'</span><span>'+r.name+'</span></div>';
     }).join('');
     el.innerHTML = bossHtml + normalHtml;
   }
@@ -1951,8 +2144,8 @@
   function renderHeader(){
     document.getElementById('goldText').textContent = Math.floor(state.gold);
     document.getElementById('endlessPill').hidden = !state.endless;
-    document.getElementById('rollWeaponBtn').disabled = state.gold<ROLL_COST;
-    document.getElementById('rollArmorBtn').disabled = state.gold<ROLL_COST;
+    document.getElementById('rollWeaponBtn').disabled = state.gold<ROLL_COST && !state.nextRollFree;
+    document.getElementById('rollArmorBtn').disabled = state.gold<ROLL_COST && !state.nextRollFree;
 
     var relicCount = Object.keys(state.relics).reduce(function(sum,id){ return sum+state.relics[id]; }, 0);
     document.getElementById('relicCountText').textContent = relicCount;
