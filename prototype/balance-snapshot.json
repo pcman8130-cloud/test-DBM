@@ -1,5 +1,5 @@
 {
-  "_meta": "prototype/index.html (구 dungeon-vending-machine.html) 의 실제 수치 스냅샷. backend/DungeonVM.Core/Balance/DefaultBalance.json 스키마와 동일한 형식이며, DungeonVM.Simulator --balance 옵션으로 그대로 로드 가능. 2026-09-20 동기화 작업 직후 기준.",
+  "_meta": "prototype/index.html (구 dungeon-vending-machine.html) 의 실제 수치 스냅샷. backend/DungeonVM.Core/Balance/DefaultBalance.json 스키마와 동일한 형식이며, DungeonVM.Simulator --balance 옵션으로 그대로 로드 가능. 2026-09-20 동기화 작업 직후 기준(stageRewardChoice는 2026-10 3상자 개편 반영).",
   "weapons": {
     "maxTier": 15,
     "levelMultipliers": [1.00, 1.35, 1.75, 2.15, 2.55, 2.95, 3.35, 3.75, 4.15, 4.60, 5.30, 6.10, 7.10, 8.30, 10.00],
@@ -112,19 +112,43 @@
     "darkBonusDamageRatio": 0.15
   },
   "stageRewardChoice": {
-    "regularGoldOption": 30,
-    "regularAttackBoost": 0.4,
-    "regularHealthBoost": 0.6,
-    "regularBoxRuneChance": 0.9,
+    "equipmentBoxWeaponChance": 0.5,
+    "regularStageLowestLevelChance": 0.4,
+    "equipmentBoxBands": [
+      { "bossStage": 5, "weaponMinLevel": 3, "weaponMaxLevel": 4, "bossArmorEpicChance": 0.5, "bossArmorLegendaryChance": 0.0, "regularArmorEpicChance": 0.35 },
+      { "bossStage": 10, "weaponMinLevel": 4, "weaponMaxLevel": 6, "bossArmorEpicChance": 0.5, "bossArmorLegendaryChance": 0.0, "regularArmorEpicChance": 0.4 },
+      { "bossStage": 15, "weaponMinLevel": 5, "weaponMaxLevel": 7, "bossArmorEpicChance": 0.6, "bossArmorLegendaryChance": 0.0, "regularArmorEpicChance": 0.45 },
+      { "bossStage": 20, "weaponMinLevel": 7, "weaponMaxLevel": 8, "bossArmorEpicChance": 0.7, "bossArmorLegendaryChance": 0.3, "regularArmorEpicChance": 0.6 },
+      { "bossStage": 25, "weaponMinLevel": 8, "weaponMaxLevel": 9, "bossArmorEpicChance": 0.6, "bossArmorLegendaryChance": 0.4, "regularArmorEpicChance": 0.65 },
+      { "bossStage": 30, "weaponMinLevel": 9, "weaponMaxLevel": 10, "bossArmorEpicChance": 0.5, "bossArmorLegendaryChance": 0.5, "regularArmorEpicChance": 0.7 }
+    ],
+    "regularBoxRuneChance": 0.5,
+    "midBossBoxRuneChance": 0.5,
+    "bossBoxRuneChance": 0.5,
+    "regularAttackPercent": 0.06,
+    "regularHealthBoost": 10,
+    "midBossAttackPercent": 0.12,
+    "midBossHealthBoost": 20,
+    "bossAttackPercent": 0.20,
+    "bossHealthBoost": 35,
+    "regularAttackPercentPerStage": 0.003,
+    "regularHealthBoostPerStage": 0.8,
+    "midBossAttackPercentPerStage": 0.004,
+    "midBossHealthBoostPerStage": 1.5,
+    "bossAttackPercentPerStage": 0.006,
+    "bossHealthBoostPerStage": 2,
+    "utilityDodgeBoost": 0.02,
+    "utilityAttackSpeedBoost": 0.04,
+    "utilityCooldownReduction": 0.05,
+    "midBossUtilityScale": 1.5,
+    "bossUtilityScale": 2.0,
     "midBossBaseSoulsBonus": 5,
-    "midBossGoldOption": 80,
-    "midBossAttackBoost": 1.0,
-    "midBossHealthBoost": 1.4,
-    "midBossBoxRuneChance": 0.7,
     "bossBaseSoulsBonus": 12,
+    "regularGoldOption": 30,
+    "midBossGoldOption": 80,
     "bossGoldOption": 150,
-    "bossAttackBoost": 2.0,
-    "bossHealthBoost": 2.5,
-    "bossBoxRuneChance": 0.5
+    "regularGoldPerStage": 1.5,
+    "midBossGoldOptionPerStage": 3,
+    "bossGoldOptionPerStage": 5
   }
 }

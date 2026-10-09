@@ -444,13 +444,13 @@
 
         <div class="panel-title" style="margin-top:16px;">
           <h2>🏺 보유 유물</h2>
-          <span class="hint">스테이지 보상의 '상자'에서 확률적으로 등장</span>
+          <span class="hint">스테이지 보상의 '특수 상자'에서 확률적으로 등장</span>
         </div>
         <div class="relic-bar" id="relicBar"></div>
 
         <div class="panel-title" style="margin-top:16px;">
           <h2>🔮 룬 보관함 (6칸)</h2>
-          <span class="hint" id="runeHint">상자에서 획득 · 무기에 장착 후 합성하면 룬은 소멸해요</span>
+          <span class="hint" id="runeHint">특수 상자에서 획득 · 무기에 장착한 룬은 합성해도 유지돼요</span>
         </div>
         <div class="rune-bar" id="runeBar"></div>
 
@@ -529,14 +529,34 @@
     legendary:{ label:'레전더리', color:'var(--rarity-legendary)', hp:[70,120], atk:[0.09,0.15], dodge:[0.07,0.12] }
   };
 
-  // atkFlat/hpFlat는 스테이지 스케일 없는 고정값 — 예전엔 stage에 비례해 계속 커져서
-  // "스탯 보상만 계속 선택"하는 것만으로 무기 합성 없이 자동 클리어가 되는 문제가 있었음.
-  // 이제 무기 성장(레벨/스킬 배율)이 메인 딜러이고, 이 보상은 보조 수단 정도로만 작동하게 낮춤.
+  // 스테이지 클리어 보상은 3개의 "상자"(장비/특수/능력치) 중 하나를 고르고, 상자를 열 때 안에서 한 번 더 굴린다(2중 가챠).
+  // 백엔드 StageRewardChoiceBalanceSection(DefaultBalance.json의 stageRewardChoice)과 같은 수치.
+  //  - 장비 상자: 무기(Lv.min~max) 또는 방어구. 5스테이지 구간(다음 보스 스테이지)마다 EQUIP_BANDS 표대로 나온다.
+  //    보스 스테이지(5·10·…)는 표 그대로(무기 레벨 균등), 일반 스테이지는 그 구간 보스 표를 기준으로 무기 최소 레벨을 1 낮추고
+  //    그 "낮춘 최소 레벨"이 REGULAR_LOWEST_LEVEL_CHANCE 확률로 나온다. 방어구는 일반 스테이지에서 레어/에픽만, 전설은 보스 스테이지 표에만 있다.
+  //  - 특수 상자: 룬(속성 랜덤) 또는 유물. runeChance 확률로 룬, 나머지는 유물.
+  //  - 능력치 상자: 공격력%(현재 공격력의 %) / 체력(고정값) / 유틸(회피율·공격속도·쿨타임 감소 중 하나)을 균등하게 굴린다.
+  //    공격력/체력은 `기본 + PerStage × 클리어한 스테이지`.
   var REWARD_CONFIG = {
-    normal:{ gold:30, atkFlat:3, hpFlat:10, boxWeights:{ relic:0.10, rune:0.90 } },
-    mid:{ gold:80, atkFlat:6, hpFlat:20, boxWeights:{ relic:0.30, rune:0.70 } },
-    boss:{ gold:150, atkFlat:12, hpFlat:35, boxWeights:{ relic:0.50, rune:0.50 } }
+    normal:{ atkPct:0.06, atkPctPerStage:0.003, hp:10, hpPerStage:0.8, runeChance:0.5, utilScale:1 },
+    mid:   { atkPct:0.12, atkPctPerStage:0.004, hp:20, hpPerStage:1.5, runeChance:0.5, utilScale:1.5 },
+    boss:  { atkPct:0.20, atkPctPerStage:0.006, hp:35, hpPerStage:2,   runeChance:0.5, utilScale:2 }
   };
+  var EQUIP_BOX = { weaponChance:0.5 };
+  var REGULAR_LOWEST_LEVEL_CHANCE = 0.4;
+  var EQUIP_BANDS = [ // bossStage, 무기 레벨 범위, 보스 스테이지 방어구(에픽/전설 확률, 나머지 레어), 일반 스테이지 방어구(에픽 확률, 나머지 레어)
+    { bossStage:5,  wMin:3, wMax:4,  bossEpic:0.5, bossLegendary:0.0, regEpic:0.35 },
+    { bossStage:10, wMin:4, wMax:6,  bossEpic:0.5, bossLegendary:0.0, regEpic:0.40 },
+    { bossStage:15, wMin:5, wMax:7,  bossEpic:0.6, bossLegendary:0.0, regEpic:0.45 },
+    { bossStage:20, wMin:7, wMax:8,  bossEpic:0.7, bossLegendary:0.3, regEpic:0.60 },
+    { bossStage:25, wMin:8, wMax:9,  bossEpic:0.6, bossLegendary:0.4, regEpic:0.65 },
+    { bossStage:30, wMin:9, wMax:10, bossEpic:0.5, bossLegendary:0.5, regEpic:0.70 }
+  ];
+  function equipBandFor(stage){
+    for(var i=0;i<EQUIP_BANDS.length;i++){ if(EQUIP_BANDS[i].bossStage>=stage) return EQUIP_BANDS[i]; }
+    return EQUIP_BANDS[EQUIP_BANDS.length-1];
+  }
+  var STAT_UTILITY = { dodge:0.02, aspd:0.04, cdr:0.05 }; // 일반 스테이지 기준(중간보스/보스는 utilScale 배)
 
   var VEND_UPGRADE_COSTS = [150, 350, 700, 1300];
   var MAX_VEND_LEVEL = 5;
@@ -665,7 +685,11 @@
     endless: false,
     phase: 'prep', // prep | combat | reward | gameover | democlear
     teamAtkFlat: 0,
+    teamAtkPct: 0,   // 능력치 상자: 공격력 % (0.1 = +10%)
     teamHpFlat: 0,
+    teamDodge: 0,    // 능력치 상자(유틸): 회피율
+    teamAspd: 0,     // 능력치 상자(유틸): 공격속도 + 비율
+    teamCdr: 0,      // 능력치 상자(유틸): 쿨타임 감소 — 무기 스킬(기절/암살) 발동 확률 배율(1+값)로 근사
     weaponVendLevel: 1,
     armorVendLevel: 1,
     relics: {},
@@ -718,12 +742,14 @@
       changed = false;
       for(var i=0;i<state.gridUnlocked && !changed;i++){
         var a = state.grid[i];
-        if(!a || a.kind!=='weapon' || a.rune) continue;
+        if(!a || a.kind!=='weapon') continue;
         for(var j=i+1;j<state.gridUnlocked;j++){
           var b = state.grid[j];
-          if(!b || b.kind!=='weapon' || b.rune) continue;
+          if(!b || b.kind!=='weapon') continue;
+          if(a.rune && b.rune) continue; // 둘 다 룬이 있으면 한쪽 룬이 사라지므로 자동합성하지 않고 직접 고르게 둔다
           if(canMerge(a,b)){
-            var merged = { id:newId(), kind:'weapon', type:a.type, level:a.level+1, fresh:true, rune:null };
+            // 룬은 합성해도 사라지지 않고 무기에 귀속된다(있는 쪽의 룬을 이어받음).
+            var merged = { id:newId(), kind:'weapon', type:a.type, level:a.level+1, fresh:true, rune:a.rune||b.rune||null };
             state.grid[j] = merged;
             state.grid[i] = null;
             log('🔁 자동합성: <b>'+WEAPONS[merged.type].icon+' '+WEAPONS[merged.type].name+'</b>이(가) <b>Lv.'+merged.level+'</b>이 되었습니다!');
@@ -1010,17 +1036,19 @@
     }
 
     if(toItem && canMerge(fromItem,toItem)){
-      var merged = { id:newId(), kind:'weapon', type:fromItem.type, level:fromItem.level+1, fresh:true, rune:null };
+      // 룬은 합성해도 사라지지 않고 무기에 귀속된다. 둘 다 룬이 있으면 끌어온 쪽(fromItem)의 룬만 남는다.
+      var merged = { id:newId(), kind:'weapon', type:fromItem.type, level:fromItem.level+1, fresh:true, rune:fromItem.rune||toItem.rune||null };
       setItemAt(to, merged);
       setItemAt(from, null);
       log('<b>'+WEAPONS[merged.type].icon+' '+WEAPONS[merged.type].name+'</b>이(가) 합쳐져 <b>Lv.'+merged.level+'</b>이 되었습니다!');
-      var lostRunes = [fromItem.rune, toItem.rune].filter(Boolean);
-      if(lostRunes.length){
-        lostRunes.forEach(function(id){
-          var lr = RUNES[id];
-          log(lr.icon+' <b>'+lr.name+'</b>이(가) 합성으로 소멸했습니다!');
-        });
-        toast('⚠️ 룬이 소멸했습니다 ('+lostRunes.length+'개)');
+      if(merged.rune){
+        var kr = RUNES[merged.rune];
+        log(kr.icon+' <b>'+kr.name+'</b>이(가) 합성된 무기에 그대로 이어졌습니다!');
+      }
+      if(fromItem.rune && toItem.rune){
+        var lr = RUNES[toItem.rune];
+        log(lr.icon+' <b>'+lr.name+'</b>은(는) 룬이 둘 다 있어 합성으로 사라졌습니다.');
+        toast('⚠️ 룬 하나가 사라졌습니다');
       }
     } else if(!toItem){
       setItemAt(to, fromItem);
@@ -1053,15 +1081,15 @@
       var tier = skillTier(w.level);
       var atk = WEAPONS[w.type].dmg * LEVEL_MULT[w.level-1];
       atk *= (1 + SKILL_FLAT_BONUS[tier]);
-      atk += state.teamAtkFlat;
+      atk = (atk + state.teamAtkFlat) * (1 + state.teamAtkPct);
       if(hasBossRelic('chief_club')) atk *= 1.10;
       c.atk = atk;
       // 방어구의 'atk' 굴림값은 백엔드에서 공격력이 아니라 공격속도 보너스(AttackSpeedBonus)로 적용된다
-      c.aps = WEAPONS[w.type].aps * (1 + (a?a.atk:0)) * (1 + WEAPON_SKILLS[w.type].apsBonus[tier]);
+      c.aps = WEAPONS[w.type].aps * (1 + (a?a.atk:0) + state.teamAspd) * (1 + WEAPON_SKILLS[w.type].apsBonus[tier]);
     } else {
       c.atk = 0; c.aps = 0;
     }
-    c.dodge = clamp((a?a.dodge:0) + relicDodgeBonus(), 0, 0.75);
+    c.dodge = clamp((a?a.dodge:0) + relicDodgeBonus() + state.teamDodge, 0, 0.75);
   }
   function recomputeAllStats(){ state.characters.forEach(computeCharStats); }
   function healPartyIfPrep(){
@@ -1337,7 +1365,7 @@
       var tier0 = skillTier(c.weapon.level);
       if(c.weapon.type==='dagger' && tier0>0){
         var sk0 = WEAPON_SKILLS.dagger;
-        if(Math.random()<sk0.assassinateChance[tier0]){
+        if(Math.random()<sk0.assassinateChance[tier0]*(1+state.teamCdr)){
           dmg *= sk0.assassinateMult[tier0];
           assassinated = true;
         }
@@ -1368,7 +1396,7 @@
     var sk = WEAPON_SKILLS[w.type];
     if(w.type==='sword' && sk.cleaveRatio[tier]>0){
       splashOthers(target, dmg, sk.cleaveRatio[tier], sk.icon+' 휩쓸기!');
-    } else if(w.type==='shield' && Math.random()<sk.stunChance[tier]){
+    } else if(w.type==='shield' && Math.random()<sk.stunChance[tier]*(1+state.teamCdr)){
       target.atkTimer += sk.stunDuration[tier];
       log(sk.icon+' 밀치기! <b>'+target.name+'</b>이(가) 기절했습니다!');
       var el = monsterEl(target);
@@ -1439,12 +1467,23 @@
     log('🎉 스테이지 <b>'+stage+'</b> 클리어! 기본 보상 <b>+'+baseGold+'G</b>');
 
     var cfg = REWARD_CONFIG[tier];
+    var band = equipBandFor(stage);
+    var isBossStage = tier!=='normal';
+    var weaponMin = clamp(isBossStage ? band.wMin : band.wMin-1, 1, MAX_LEVEL);
+    var weaponMax = clamp(band.wMax, weaponMin, MAX_LEVEL);
     state.rewardOptions = {
       tier: tier,
-      gold: cfg.gold,
-      atkFlat: cfg.atkFlat,
-      hpFlat: cfg.hpFlat,
-      boxWeights: cfg.boxWeights
+      weaponMin: weaponMin,
+      weaponMax: weaponMax,
+      weaponLowestChance: isBossStage ? 0 : REGULAR_LOWEST_LEVEL_CHANCE,
+      armorEpic: isBossStage ? band.bossEpic : band.regEpic,
+      armorLegendary: isBossStage ? band.bossLegendary : 0,
+      runeChance: cfg.runeChance,
+      atkPct: cfg.atkPct + cfg.atkPctPerStage*stage,
+      hp: cfg.hp + cfg.hpPerStage*stage,
+      dodge: STAT_UTILITY.dodge*cfg.utilScale,
+      aspd: STAT_UTILITY.aspd*cfg.utilScale,
+      cdr: STAT_UTILITY.cdr*cfg.utilScale
     };
 
     var bossChoices = BOSS_RELICS[stage];
@@ -1483,43 +1522,89 @@
     });
   }
 
-  function applyStatReward(atkFlat, hpFlat, prefix){
-    if(Math.random()<0.5){
-      state.teamAtkFlat += atkFlat;
-      recomputeAllStats();
-      toast(prefix+'팀 공격력 +'+atkFlat+' (영구)');
-      log(prefix+'팀 <b>공격력 +'+atkFlat+'</b> (영구)');
+  function fmtPct(v, digits){ return (v*100).toFixed(digits==null?1:digits)+'%'; }
+
+  /* 장비 상자: 무기(Lv.min~max) 또는 방어구(레어~에픽, 후반 중간보스/보스는 전설도). 보관함이 가득 차면 사라진다. */
+  function openEquipmentBox(o){
+    var idx = firstEmptyCell();
+    if(Math.random()<EQUIP_BOX.weaponChance){
+      var type = WEAPON_TYPES[Math.floor(Math.random()*WEAPON_TYPES.length)];
+      var lvl = o.weaponMin;
+      if(o.weaponMax>o.weaponMin){
+        // 일반 스테이지: 낮춘 최소 레벨이 weaponLowestChance 확률로 나오고, 나머지는 그 위 레벨들이 균등. 보스 스테이지: 범위 균등.
+        var lo = o.weaponMin;
+        if(o.weaponLowestChance>0){
+          if(Math.random()>=o.weaponLowestChance) lo = o.weaponMin+1; else lo = null;
+        }
+        lvl = (lo===null) ? o.weaponMin : lo + Math.floor(Math.random()*(o.weaponMax-lo+1));
+      }
+      var label = WEAPONS[type].icon+' '+WEAPONS[type].name+' Lv.'+lvl;
+      if(idx===-1){
+        log('🎁 장비 상자에서 <b>'+label+'</b>이(가) 나왔지만 보관함이 가득 차 사라졌습니다…');
+        toast('보관함이 가득 차서 '+label+'이(가) 사라졌어요');
+        return;
+      }
+      state.grid[idx] = { id:newId(), kind:'weapon', type:type, level:lvl, fresh:true, rune:null };
+      log('🎁 장비 상자에서 <b>'+label+'</b>이(가) 나왔습니다!');
+      toast('🎁 '+label+' 획득!');
+      tryAutoMerge();
     } else {
-      state.teamHpFlat += hpFlat;
-      recomputeAllStats();
-      toast(prefix+'팀 체력 +'+hpFlat+' (영구)');
-      log(prefix+'팀 <b>체력 +'+hpFlat+'</b> (영구)');
+      var r = Math.random();
+      var rarity = r<o.armorLegendary ? 'legendary' : r<o.armorLegendary+o.armorEpic ? 'epic' : 'rare';
+      var ar = ARMOR_RARITY[rarity];
+      if(idx===-1){
+        log('🎁 장비 상자에서 <b>'+ar.label+' 방어구</b>가 나왔지만 보관함이 가득 차 사라졌습니다…');
+        toast('보관함이 가득 차서 '+ar.label+' 방어구가 사라졌어요');
+        return;
+      }
+      state.grid[idx] = { id:newId(), kind:'armor', rarity:rarity, hp:rndInt(ar.hp[0],ar.hp[1]), atk:rnd(ar.atk[0],ar.atk[1]), dodge:rnd(ar.dodge[0],ar.dodge[1]), fresh:true };
+      log('🎁 장비 상자에서 <b>'+ar.label+' 방어구</b>가 나왔습니다!');
+      toast('🎁 '+ar.label+' 방어구 획득!');
     }
+  }
+
+  /* 특수 상자: runeChance 확률로 속성 룬, 나머지는 유물. */
+  function openSpecialBox(o){
+    if(Math.random()<o.runeChance){
+      var rune = grantRune();
+      if(rune){ toast('🔮 특수 상자에서 룬 발견! '+rune.icon+' '+rune.name); return; }
+      var fallback = grantRelic();
+      toast('🔮 룬 보관함이 가득 차 있어 대신 유물 발견! '+fallback.icon+' '+fallback.name);
+      return;
+    }
+    var relic = grantRelic();
+    toast('🔮 특수 상자에서 유물 발견! '+relic.icon+' '+relic.name);
+  }
+
+  /* 능력치 상자: 공격력% / 체력 / 유틸(회피·공속·쿨감 중 하나)을 균등하게 굴려 팀 전체에 영구 적용. */
+  function openStatBox(o){
+    var slot = Math.floor(Math.random()*3);
+    var msg, detail;
+    if(slot===0){
+      state.teamAtkPct += o.atkPct;
+      msg = '팀 공격력 +'+fmtPct(o.atkPct);
+      detail = '(누적 +'+fmtPct(state.teamAtkPct)+')';
+    } else if(slot===1){
+      var hp = Math.round(o.hp);
+      state.teamHpFlat += hp;
+      msg = '팀 체력 +'+hp;
+      detail = '(누적 +'+state.teamHpFlat+')';
+    } else {
+      var sub = Math.floor(Math.random()*3);
+      if(sub===0){ state.teamDodge += o.dodge; msg = '팀 회피율 +'+fmtPct(o.dodge); detail = '(누적 +'+fmtPct(state.teamDodge)+')'; }
+      else if(sub===1){ state.teamAspd += o.aspd; msg = '팀 공격속도 +'+fmtPct(o.aspd); detail = '(누적 +'+fmtPct(state.teamAspd)+')'; }
+      else { state.teamCdr += o.cdr; msg = '팀 쿨타임 감소 '+fmtPct(o.cdr); detail = '(누적 '+fmtPct(state.teamCdr)+')'; }
+    }
+    recomputeAllStats();
+    toast('💪 '+msg+' (영구)');
+    log('💪 능력치 상자: <b>'+msg+'</b> (영구) '+detail);
   }
 
   function chooseReward(type){
     var o = state.rewardOptions;
-    if(type==='gold'){
-      var amt = Math.round(o.gold*goldMult());
-      state.gold += amt;
-      toast('+'+amt+'G 획득!');
-    } else if(type==='stat'){
-      applyStatReward(o.atkFlat, o.hpFlat, '');
-    } else if(type==='box'){
-      var r = Math.random();
-      var w = o.boxWeights;
-      if(r < w.relic){
-        var relic = grantRelic();
-        toast('🎁 상자에서 유물 발견! '+relic.icon+' '+relic.name);
-      } else {
-        var rune = grantRune();
-        if(rune) toast('🎁 상자에서 룬 발견! '+rune.icon+' '+rune.name);
-        else {
-          var fallbackRelic = grantRelic();
-          toast('🎁 룬 보관함이 가득 차 있어 대신 유물 발견! '+fallbackRelic.icon+' '+fallbackRelic.name);
-        }
-      }
-    }
+    if(type==='equip') openEquipmentBox(o);
+    else if(type==='special') openSpecialBox(o);
+    else if(type==='stat') openStatBox(o);
     closeModal();
     state.rewardOptions=null;
     advanceStage();
@@ -1548,6 +1633,7 @@
 
   function resetGame(){
     state.gold=50; state.stage=1; state.endless=false; state.teamAtkFlat=0; state.teamHpFlat=0;
+    state.teamAtkPct=0; state.teamDodge=0; state.teamAspd=0; state.teamCdr=0;
     state.weaponVendLevel=1; state.armorVendLevel=1; state.relics={}; state.bossRelics={};
     state.gridUnlocked = GRID_START_CELLS;
     state.grid = new Array(16).fill(null);
@@ -1570,16 +1656,20 @@
   function renderRewardModal(){
     var o = state.rewardOptions;
     var tierLabel = o.tier==='boss' ? '🐉 대형 보스 보상' : o.tier==='mid' ? '👹 중간 보스 보상' : '스테이지 보상';
+    var armorLow = (1-o.armorEpic-o.armorLegendary)>0.0001 ? '레어' : '에픽';
+    var armorHigh = o.armorLegendary>0 ? '레전더리' : '에픽';
+    var armorRange = armorLow+'~'+armorHigh;
+    var gridFull = firstEmptyCell()===-1;
     var html = ''+
       '<div class="overlay"><div class="modal">'+
       '<h2>'+tierLabel+'</h2>'+
-      '<p class="sub">셋 중 하나를 골라 팀을 강화하세요.</p>'+
+      '<p class="sub">상자 셋 중 하나를 열어 보세요. 안에서 무엇이 나올지는 열 때 정해져요.</p>'+
       '<div class="reward-options">'+
-        '<button class="reward-card" data-choice="gold"><div class="ic">🪙</div><div class="title">골드</div><div class="desc">+'+o.gold+' G</div></button>'+
-        '<button class="reward-card" data-choice="stat"><div class="ic">💪</div><div class="title">팀 능력치 영구 증가</div><div class="desc">공격력 +'+o.atkFlat+'<br>또는 체력 +'+o.hpFlat+'<br>(랜덤으로 하나)</div></button>'+
-        '<button class="reward-card" data-choice="box"><div class="ic">🎁</div><div class="title">상자</div><div class="desc">유물 또는 속성 룬<br>중 하나가 나와요</div></button>'+
+        '<button class="reward-card" data-choice="equip"><div class="ic">🗡️</div><div class="title">장비 상자</div><div class="desc">무기 Lv.'+o.weaponMin+(o.weaponMax>o.weaponMin?'~'+o.weaponMax:'')+'<br>또는 '+armorRange+' 방어구<br>(랜덤으로 하나)</div></button>'+
+        '<button class="reward-card" data-choice="special"><div class="ic">🔮</div><div class="title">특수 상자</div><div class="desc">속성 룬 또는 유물<br>(랜덤으로 하나)</div></button>'+
+        '<button class="reward-card" data-choice="stat"><div class="ic">💪</div><div class="title">능력치 상자</div><div class="desc">공격력 +'+fmtPct(o.atkPct)+' / 체력 +'+Math.round(o.hp)+'<br>회피·공속·쿨감 중 하나<br>(랜덤으로 하나, 영구)</div></button>'+
       '</div>'+
-      '<div class="modal-footnote">※ 상자는 유물·룬 전용 — 골드나 능력치가 필요하면 다른 선택지를 고르세요.</div>'+
+      '<div class="modal-footnote">'+(gridFull ? '⚠️ 보관함이 가득 차 있어요 — 장비 상자에서 나온 장비는 사라집니다. ' : '')+'※ 룬은 합성해도 무기에 그대로 이어져요.</div>'+
       '</div></div>';
     document.getElementById('modalRoot').innerHTML = html;
     document.querySelectorAll('.reward-card').forEach(function(btn){
@@ -1746,7 +1836,7 @@
     var ids = Object.keys(state.relics);
     var bossIds = Object.keys(state.bossRelics);
     if(!ids.length && !bossIds.length){
-      el.innerHTML = '<div class="relic-empty">아직 얻은 유물이 없습니다 — 스테이지 클리어 보상의 <b>상자</b>, 또는 5스테이지마다 등장하는 보스에게서 확률적으로/확정으로 등장해요.</div>';
+      el.innerHTML = '<div class="relic-empty">아직 얻은 유물이 없습니다 — 스테이지 클리어 보상의 <b>특수 상자</b>, 또는 5스테이지마다 등장하는 보스에게서 확률적으로/확정으로 등장해요.</div>';
       return;
     }
     var bossHtml = bossIds.map(function(id){
@@ -1774,7 +1864,7 @@
     });
     var hint = document.getElementById('runeHint');
     if(state.selectedRune!=null) hint.textContent = '장착할 무기를 클릭하세요 (그리드 또는 파티 무기 슬롯)';
-    else hint.textContent = '상자에서 획득 · 무기에 장착 후 합성하면 룬은 소멸해요';
+    else hint.textContent = '특수 상자에서 획득 · 무기에 장착한 룬은 합성해도 유지돼요';
   }
 
   function renderBattleStatic(){
