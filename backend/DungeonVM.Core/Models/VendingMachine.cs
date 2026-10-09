@@ -17,23 +17,55 @@ public sealed class VendingMachine
     private static readonly WeaponType[] AllWeaponTypes = (WeaponType[])Enum.GetValues(typeof(WeaponType));
     private static readonly ArmorType[] AllArmorTypes = (ArmorType[])Enum.GetValues(typeof(ArmorType));
 
-    /// <summary>MetaProgression.FirstRollTierBoostChance 판정 성공 시 다음 1회 뽑기를 2티어로 확정한다.</summary>
+    /// <summary>더 이상 자판기에서 나오지 않게 막은 무기 종류(고대 주화 유물).</summary>
+    public HashSet<WeaponType> BannedWeaponTypes { get; } = new();
+
+    /// <summary>속임수 동전 유물: 다음 뽑기(무기/방어구)가 무료인지.</summary>
+    public bool NextRollFree { get; set; }
+
+    /// <summary>MetaProgression.FirstRollTierBoostChance 판정 성공 시 다음 1회 뽑기를 최소 2티어로 보장한다.</summary>
     public bool NextRollGuaranteedTier2 { get; set; }
 
-    /// <summary>업그레이드 레벨이 오를수록 2티어 무기 등장 확률이 선형으로 증가한다(고티어는 뽑기가 아닌 머지로만 도달).</summary>
+    /// <summary>자판기 강화 레벨(1~5)별 뽑기 등장 티어 확률표. 프로토타입(index.html)의 WEAPON_LEVEL_TABLE과
+    /// 정확히 동일하다 — 예전엔 이 표 없이 "레벨이 오를수록 2티어 확률만 선형 증가"하는 이진(1티어 vs 2티어)
+    /// 방식이었는데, 그러면 자판기를 아무리 강화해도 뽑기로는 절대 2티어를 못 넘고 나머지는 전부 머지로만
+    /// 채워야 해서 같은 골드 투자 대비 무기 성장 속도가 프로토타입보다 크게 느렸다(스테15 보스전 화력 부족의
+    /// 실질적 원인). 프로토타입은 Lv.5 자판기에서 곧바로 3~7티어 무기가 나온다.</summary>
+    private static readonly (int Tier, double Weight)[][] WeaponRollTierTable =
+    {
+        new (int, double)[] { (1, 100) },
+        new (int, double)[] { (1, 78), (2, 19), (3, 3) },
+        new (int, double)[] { (1, 65), (2, 22), (3, 10), (4, 3) },
+        new (int, double)[] { (2, 55), (3, 28), (4, 13), (5, 4) },
+        new (int, double)[] { (3, 50), (4, 33), (5, 15.5), (6, 1), (7, 0.5) },
+    };
+
     public Weapon RollWeapon(Random rng)
     {
-        var type = AllWeaponTypes[rng.Next(AllWeaponTypes.Length)];
-        double tier2Chance = Config.Tier2ChanceBase + (AttackUpgradeLevel - 1) * Config.Tier2ChancePerLevel;
+        var allowed = AllWeaponTypes.Where(t => !BannedWeaponTypes.Contains(t)).ToArray();
+        var type = allowed[rng.Next(allowed.Length)];
+        int tier = RollWeaponTier(rng);
 
         if (NextRollGuaranteedTier2)
         {
-            tier2Chance = 1.0;
+            tier = Math.Max(tier, 2);
             NextRollGuaranteedTier2 = false;
         }
 
-        int tier = rng.NextDouble() < tier2Chance ? 2 : 1;
         return new Weapon(type, tier);
+    }
+
+    private int RollWeaponTier(Random rng)
+    {
+        var table = WeaponRollTierTable[Math.Clamp(AttackUpgradeLevel - 1, 0, WeaponRollTierTable.Length - 1)];
+        double roll = rng.NextDouble() * 100;
+        double cumulative = 0;
+        foreach (var (tier, weight) in table)
+        {
+            cumulative += weight;
+            if (roll < cumulative) return tier;
+        }
+        return table[^1].Tier;
     }
 
     public Armor RollArmor(Random rng)

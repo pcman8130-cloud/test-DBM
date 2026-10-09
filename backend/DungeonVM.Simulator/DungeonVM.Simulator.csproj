@@ -15,4 +15,10 @@
     <ProjectReference Include="..\DungeonVM.LLM\DungeonVM.LLM.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="BalanceTargets.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

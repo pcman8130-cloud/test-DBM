@@ -1,4 +1,5 @@
 using DungeonVM.Core.Enums;
+using DungeonVM.Core.Models;
 using DungeonVM.Core.Systems;
 
 namespace DungeonVM.Simulator.Bots;
@@ -17,7 +18,7 @@ public sealed class VendingRushBot : IBot
     {
         ctx.ApplyFreeActions();
         if (!ShouldSaveForNextGoal(ctx))
-            while (ctx.TryRollWeapon()) { }
+            while (ctx.TryRollWeapon(UnwantedWeaponTypes(ctx))) { }
     }
 
     public void OnMaintenancePhase(BotContext ctx)
@@ -40,11 +41,15 @@ public sealed class VendingRushBot : IBot
         }
         EquipUnarmed(ctx);
 
+        // 최소 방어 투자: 방어구 자판기 업그레이드까지 해놓고 정작 방어구를 한 번도 안 뽑으면 의미가 없다.
+        // 맨몸 방어구 캐릭터는 최소 한 벌은 챙긴다(그리드에 이미 있으면 공짜로, 없으면 1회만 굴려서).
+        EquipMinimalArmor(ctx);
+
         // 그리드 해금은 하지 않는다(가로 확장에 골드를 몰아주고 그리드 병목은 그대로 감수).
         // 다음 업그레이드/슬롯이 1~2스테이지 수입으로 곧 감당 가능하면 재뽑기를 멈추고 저축한다
         // (안 그러면 남는 돈을 매번 재뽑기에 다 써버려서 목돈이 드는 목표를 영원히 못 산다).
         if (!ShouldSaveForNextGoal(ctx))
-            while (ctx.TryRollWeapon()) { }
+            while (ctx.TryRollWeapon(UnwantedWeaponTypes(ctx))) { }
 
         foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is not null))
         {
@@ -72,6 +77,30 @@ public sealed class VendingRushBot : IBot
                 _committedType[character.Id] = character.EquippedWeapon!.Type;
     }
 
+    /// <summary>파티 전원이 이미 무기 타입을 정했다면, 그 외 타입은 이 파티에서 절대 쓸 일이 없다
+    /// (최대 5명이어도 무기는 6종이라 최소 1종은 항상 남음). 그리드만 차지하다 환급 없이 강제 폐기되느니
+    /// 뽑히는 즉시 판매하는 편이 낫다. 아직 구성 중(맨몸 캐릭터 존재)이면 아무것도 배제하지 않는다.</summary>
+    private HashSet<WeaponType> UnwantedWeaponTypes(BotContext ctx)
+    {
+        if (ctx.Party.Any(c => c.EquippedWeapon is null))
+            return new HashSet<WeaponType>();
+
+        var committed = new HashSet<WeaponType>(_committedType.Values);
+        return Enum.GetValues(typeof(WeaponType)).Cast<WeaponType>().Where(t => !committed.Contains(t)).ToHashSet();
+    }
+
+    private static void EquipMinimalArmor(BotContext ctx)
+    {
+        foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is not null && c.EquippedArmor is null))
+        {
+            if (ctx.TryEquipArmorFromGrid(character)) continue;
+            if (ctx.TryRollArmor())
+                ctx.TryEquipArmorFromGrid(character);
+        }
+    }
+
     /// <summary>항상 팀 능력치 영구증가 — 가로 확장(로스터/업그레이드)에 어울리는 확정적·누적형 성장을 선호한다.</summary>
-    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.StatBoost);
+    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.StatBox);
+
+    public int ChooseBossRelic(BotContext ctx, IReadOnlyList<BossRelic> candidates) => 0;
 }

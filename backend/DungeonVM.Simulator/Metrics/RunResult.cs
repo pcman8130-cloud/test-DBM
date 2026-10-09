@@ -17,5 +17,9 @@ public sealed record RunResult(
     IReadOnlyList<string> FinalArmors,
     int GridBottleneckSells,
     int RuneAvoidanceSkips,
-    int SavingsHolds
+    int SavingsHolds,
+    int PartySize = 0,
+    int GridUnlockedCells = 0,
+    int AttackUpgradeLevel = 0,
+    int DefenseUpgradeLevel = 0
 );

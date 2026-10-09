@@ -23,7 +23,7 @@ internal static class Program
 {
     private const double TickSeconds = 0.25;
     private const double MaxSecondsPerStage = 60;
-    private const int StartingGold = 100;
+    private const int StartingGold = 50; // 프로토타입(index.html)의 시작 골드와 동일
 
     private static async Task<int> Main(string[] args)
     {
@@ -41,7 +41,24 @@ internal static class Program
 
         int runsPerBot = parsed.RunsPerBot;
 
-        IBot[] bots = { new SpaceExpansionBot(), new VendingRushBot(), new MidTierCampBot() };
+        if (parsed.Tune)
+        {
+            return await Evaluation.BalanceTuner.RunAsync(new Evaluation.BalanceTuner.Options(
+                parsed.RunsPerBot, parsed.Iterations, parsed.MaxChanges, parsed.MockLlm, parsed.Seed, parsed.TargetsPath, parsed.TuneOutDir));
+        }
+
+        if (parsed.Evaluate)
+        {
+            return Evaluation.BalanceEvaluator.Run(
+                parsed.RunsPerBot, parsed.RelicRuns, parsed.SkipRelics, parsed.Seed, parsed.TargetsPath, parsed.EvalOutPath);
+        }
+
+        IBot[] bots =
+        {
+            new SpaceExpansionBot(), new VendingRushBot(), new MidTierCampBot(), new BalancedBot(),
+            new BalancedBot(BalancedBotProfile.Hoarder), new BalancedBot(BalancedBotProfile.Spender), new BalancedBot(BalancedBotProfile.BossPrep),
+            new BalancedBot(BalancedBotProfile.Expert),
+        };
         var metaByBot = bots.ToDictionary(b => b.Name, _ => new MetaProgression());
         var metricsByBot = bots.ToDictionary(b => b.Name, _ => new WeaponTierMetrics());
         var collector = new RunLogCollector();
@@ -103,7 +120,11 @@ internal static class Program
         return 0;
     }
 
-    private sealed record ParsedArgs(int RunsPerBot, string? BalancePath, string? SummaryPath, string? ProgressPath, bool SkipLlm);
+    private sealed record ParsedArgs(
+        int RunsPerBot, string? BalancePath, string? SummaryPath, string? ProgressPath, bool SkipLlm,
+        bool Evaluate = false, string? TargetsPath = null, string? EvalOutPath = null,
+        int RelicRuns = 2000, bool SkipRelics = false, int Seed = 12345,
+        bool Tune = false, int Iterations = 3, int MaxChanges = 4, bool MockLlm = false, string? TuneOutDir = null);
 
     /// <summary>
     /// "[숫자] [--balance &lt;path&gt;] [--summary &lt;path&gt;] [--progress &lt;path&gt;] [--skip-llm]" 형태를 파싱한다.
@@ -119,12 +140,56 @@ internal static class Program
         string? summaryPath = null;
         string? progressPath = null;
         bool skipLlm = false;
+        bool evaluate = false, skipRelics = false;
+        bool tune = false, mockLlm = false;
+        string? targetsPath = null, evalOutPath = null, tuneOutDir = null;
+        int relicRuns = 2000, seed = 12345, iterations = 3, maxChanges = 4;
         var positional = new List<string>();
 
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
             {
+                case "--evaluate":
+                    evaluate = true;
+                    break;
+                case "--skip-relics":
+                    skipRelics = true;
+                    break;
+                case "--tune":
+                    tune = true;
+                    break;
+                case "--mock-llm":
+                    mockLlm = true;
+                    break;
+                case "--tune-out":
+                    if (i + 1 >= args.Length) throw new ArgumentException("--tune-out 옵션 뒤에는 출력 폴더 경로가 와야 합니다.");
+                    tuneOutDir = args[++i];
+                    break;
+                case "--iterations":
+                    if (i + 1 >= args.Length || !int.TryParse(args[i + 1], out iterations)) throw new ArgumentException("--iterations 옵션 뒤에는 정수가 와야 합니다.");
+                    i++;
+                    break;
+                case "--max-changes":
+                    if (i + 1 >= args.Length || !int.TryParse(args[i + 1], out maxChanges)) throw new ArgumentException("--max-changes 옵션 뒤에는 정수가 와야 합니다.");
+                    i++;
+                    break;
+                case "--targets":
+                    if (i + 1 >= args.Length) throw new ArgumentException("--targets 옵션 뒤에는 BalanceTargets.json 경로가 와야 합니다.");
+                    targetsPath = args[++i];
+                    break;
+                case "--eval-out":
+                    if (i + 1 >= args.Length) throw new ArgumentException("--eval-out 옵션 뒤에는 저장할 JSON 경로가 와야 합니다.");
+                    evalOutPath = args[++i];
+                    break;
+                case "--relic-runs":
+                    if (i + 1 >= args.Length || !int.TryParse(args[i + 1], out relicRuns)) throw new ArgumentException("--relic-runs 옵션 뒤에는 정수가 와야 합니다.");
+                    i++;
+                    break;
+                case "--seed":
+                    if (i + 1 >= args.Length || !int.TryParse(args[i + 1], out seed)) throw new ArgumentException("--seed 옵션 뒤에는 정수가 와야 합니다.");
+                    i++;
+                    break;
                 case "--balance":
                     if (i + 1 >= args.Length)
                         throw new ArgumentException("--balance 옵션 뒤에는 JSON 파일 경로가 와야 합니다.");
@@ -160,7 +225,9 @@ internal static class Program
             runsPerBot = n;
 
         balancePath ??= Environment.GetEnvironmentVariable("DUNGEONVM_BALANCE_JSON");
-        return new ParsedArgs(runsPerBot, balancePath, summaryPath, progressPath, skipLlm);
+        return new ParsedArgs(runsPerBot, balancePath, summaryPath, progressPath, skipLlm,
+            evaluate, targetsPath, evalOutPath, relicRuns, skipRelics, seed,
+            tune, iterations, maxChanges, mockLlm, tuneOutDir);
     }
 
     /// <summary>실행 도중 진행 상황을 파일에 덮어쓴다. 웹 UI가 이 파일을 주기적으로 폴링해서 진행률/실시간 지표를 보여준다.</summary>
@@ -207,7 +274,12 @@ internal static class Program
         }
     }
 
-    private static RunResult SimulateOneRun(IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics, StageAttemptCollector stageAttempts)
+    /// <summary>forceRelic: (클리어한 스테이지, 후보 유물들) → 강제로 고를 유물 Id(null이면 봇 기본 선택). 평가기가 "유물 하나만
+    /// 바꿨을 때"의 영향을 분리해서 측정할 때 쓴다. onStageStart: 정비 직후 전투 시작 직전에 (스테이지, StageLoop)로 호출.</summary>
+    internal static RunResult SimulateOneRun(
+        IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics, StageAttemptCollector stageAttempts,
+        Func<int, IReadOnlyList<BossRelic>, string?>? forceRelic = null,
+        Action<int, StageLoop>? onStageStart = null)
     {
         var currency = new CurrencyManager();
         var inventory = new InventoryManager();
@@ -226,9 +298,10 @@ internal static class Program
         while (!stageLoop.IsRunComplete)
         {
             bot.OnMaintenancePhase(ctx);
+            onStageStart?.Invoke(stageLoop.CurrentStage, stageLoop);
 
             var monsters = stageLoop.BeginStageCombat(rng);
-            var battle = new BattleField(party, monsters, rng, currency);
+            var battle = new BattleField(party, monsters, rng, currency, stageLoop);
 
             var outcome = RunEndReason.InProgress;
             double elapsed = 0;
@@ -236,7 +309,7 @@ internal static class Program
             while (outcome == RunEndReason.InProgress && elapsed < MaxSecondsPerStage)
             {
                 bot.OnCombatTick(ctx);
-                outcome = battle.Tick(TickSeconds, meta.RetireSpeedMultiplier + stageLoop.RelicRetireSpeedBonus);
+                outcome = battle.Tick(TickSeconds, meta.RetireSpeedMultiplier);
                 elapsed += TickSeconds;
             }
 
@@ -249,9 +322,27 @@ internal static class Program
 
             if (outcome == RunEndReason.Victory)
             {
+                int clearedStage = stageLoop.CurrentStage;
+                var bossCandidates = BossRelicCatalog.CandidatesFor(clearedStage);
+                if (bossCandidates.Count > 0)
+                {
+                    int bossIndex = bot.ChooseBossRelic(ctx, bossCandidates);
+                    if (forceRelic?.Invoke(clearedStage, bossCandidates) is { } forcedId)
+                    {
+                        for (int i = 0; i < bossCandidates.Count; i++)
+                            if (bossCandidates[i].Id == forcedId) { bossIndex = i; break; }
+                    }
+                    string pickedId = bossCandidates[Math.Clamp(bossIndex, 0, bossCandidates.Count - 1)].Id;
+                    stageLoop.GrantBossRelic(pickedId);
+                    // 고대 주화: 무기 한 종류를 골라 이후 자판기·보상에서 나오지 않게 한다.
+                    if (RelicCatalog.Get(pickedId) is { BansWeapon: true })
+                        stageLoop.BanWeaponType(bot.ChooseBannedWeapon(ctx));
+                }
+
                 var rewardChoice = stageLoop.CompleteStageVictory(rng);
                 int selected = bot.ChooseStageReward(ctx, rewardChoice);
-                stageLoop.ResolveStageRewardChoice(rewardChoice, selected, rng);
+                var reveal = stageLoop.OpenRewardBox(rewardChoice, selected, rng);
+                stageLoop.ClaimRewardCandidate(reveal, bot.ChooseRewardCandidate(ctx, reveal));
                 continue;
             }
 
@@ -282,10 +373,12 @@ internal static class Program
 
         return new RunResult(
             bot.Name, runIndex, outcome, stagesCleared, currency.Gold, currency.Souls,
-            weapons, armors, ctx.GridBottleneckSells, ctx.RuneAvoidanceSkips, ctx.SavingsHolds);
+            weapons, armors, ctx.GridBottleneckSells, ctx.RuneAvoidanceSkips, ctx.SavingsHolds,
+            stageLoop.Party.Count, stageLoop.Inventory.Grid.UnlockedCells,
+            stageLoop.Machine.AttackUpgradeLevel, stageLoop.Machine.DefenseUpgradeLevel);
     }
 
-    private static void InvestMetaSouls(MetaProgression meta)
+    internal static void InvestMetaSouls(MetaProgression meta)
     {
         bool progressed = true;
         while (progressed)
@@ -465,9 +558,7 @@ internal static class Program
         foreach (var item in lowAdoptionItems)
             Console.WriteLine($"  - {item.ItemId}: {item.AdoptionRate:P2} (n={item.SampleSize})");
 
-        ILlmClient client = new AnthropicClient();
-        if (!client.IsConfigured)
-            client = new OpenAiClient();
+        ILlmClient client = LlmClientFactory.CreateConfigured() ?? new AnthropicClient();
 
         var optimizer = new RecipeOptimizer(client);
         optimizer.OnLog += msg => Console.WriteLine($"  {msg}");

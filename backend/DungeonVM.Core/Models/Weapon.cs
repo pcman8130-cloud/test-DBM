@@ -30,14 +30,15 @@ public sealed class Weapon
 
     /// <summary>
     /// 동종 무기 결합. 호출자가 두 원본 인스턴스를 그리드/슬롯에서 제거하고 반환된 새 무기로 교체해야 한다.
-    /// 핵심 딜레마 규칙: 머지 시 두 무기에 소켓된 룬은 종류를 불문하고 항상 완전히 소멸한다(해제 불가).
+    /// 소켓된 룬은 머지해도 사라지지 않고 무기에 귀속된다: 이 무기(this)에 룬이 있으면 그 속성을, 없으면
+    /// 합쳐지는 상대 무기(other)의 속성을 이어받는다. 둘 다 룬이 있으면 이 무기(this)의 룬만 남고 상대의 룬은 소멸한다.
     /// </summary>
     public Weapon MergeInto(Weapon other)
     {
         if (!CanMergeWith(other))
             throw new InvalidOperationException("동일 무기 종류/티어만 머지할 수 있습니다.");
 
-        return new Weapon(Type, Tier + 1, ElementType.None);
+        return new Weapon(Type, Tier + 1, Element != ElementType.None ? Element : other.Element);
     }
 
     public void SocketRune(ElementType element) => Element = element;

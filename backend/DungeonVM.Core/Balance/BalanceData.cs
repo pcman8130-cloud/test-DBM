@@ -112,6 +112,14 @@ public sealed class WaveBalanceSection
     /// <summary>모든 중간보스·대형보스(5/10/15/20/25/30스테)의 체력·공격력에 곱해지는 하향 배율.
     /// 위 난이도 게이트 도입 후 보스가 과하게 강해졌다는 플레이테스트 피드백으로 추가됨(기본 1.0 = 하향 없음).</summary>
     public double BossNerfMultiplier { get; set; } = 1.0;
+
+    /// <summary>특정 보스 스테이지(5·10·20·30)만 따로 조정하는 체력·공격력 배율. 중간보스·대형보스 수치(MidBoss*/BigBoss*)는
+    /// 5·15·25스테, 10·20·30스테가 공유해서 한 스테이지 난이도를 맞추면 같은 종류의 다른 보스까지 같이 움직였다 — 이 배율은 해당
+    /// 스테이지 보스에만 곱해져 서로 분리해서 조정할 수 있게 한다(기본 1.0 = 영향 없음). 15·25스테는 공유 수치(MidBoss*)로 조정한다.</summary>
+    public double Stage5BossMultiplier { get; set; } = 1.0;
+    public double Stage10BossMultiplier { get; set; } = 1.0;
+    public double Stage20BossMultiplier { get; set; } = 1.0;
+    public double Stage30BossMultiplier { get; set; } = 1.0;
 }
 
 public sealed class MetaProgressionBalanceSection
@@ -196,26 +204,86 @@ public sealed class ElementEffectsBalanceSection
 }
 
 /// <summary>
-/// 스테이지 클리어 시 기본보상 위에 추가로 제공되는 3개 선택보상(골드/팀 능력치 영구증가/상자)의 등급별 수치.
-/// 중간보스(ST 5·15·25)·보스(ST 10·20·30)로 갈수록 강화된다. 상자는 RuneChance 확률로 룬, 나머지는 유물이 나온다.
+/// 스테이지 클리어 시 기본보상 위에 추가로 고르는 3개 상자(장비/특수/능력치)의 수치. 각 상자는 열 때 한 번 더
+/// 굴리는 2중 가챠다. 중간보스(ST 5·15·25)·보스(ST 10·20·30)로 갈수록 능력치 상자가 강화된다.
 /// </summary>
 public sealed class StageRewardChoiceBalanceSection
 {
-    public int RegularGoldOption { get; set; }
-    public double RegularAttackBoost { get; set; }
-    public double RegularHealthBoost { get; set; }
+    // ── 장비 상자: 무기 또는 방어구. 5스테이지 구간(다음 보스 스테이지)마다 정해진 표대로 나온다 ──
+    /// <summary>장비 상자에서 무기가 나올 확률(나머지는 방어구).</summary>
+    public double EquipmentBoxWeaponChance { get; set; } = 0.5;
+
+    /// <summary>일반 스테이지는 그 구간 보스 스테이지 표를 기준으로 무기 최소 레벨을 1 낮춘 범위에서 나오고,
+    /// 이 확률로 그 "낮춘 최소 레벨"이 나온다(나머지 확률은 원래 범위의 레벨들이 균등하게 나눠 가진다).
+    /// 보스 스테이지(5·10·…)는 표의 범위에서 균등하게 나온다.</summary>
+    public double RegularStageLowestLevelChance { get; set; } = 0.5;
+
+    /// <summary>구간별 장비 상자 표. 스테이지 s는 BossStage ≥ s인 첫 구간을 쓴다(26~29스테는 30 구간).</summary>
+    public List<EquipmentBoxBand> EquipmentBoxBands { get; set; } = new()
+    {
+        new() { BossStage = 5, WeaponMinLevel = 2, WeaponMaxLevel = 3, BossArmorEpicChance = 0.5, BossArmorLegendaryChance = 0.0, RegularArmorEpicChance = 0.10 },
+        new() { BossStage = 10, WeaponMinLevel = 3, WeaponMaxLevel = 4, BossArmorEpicChance = 0.5, BossArmorLegendaryChance = 0.0, RegularArmorEpicChance = 0.12 },
+        new() { BossStage = 15, WeaponMinLevel = 4, WeaponMaxLevel = 5, BossArmorEpicChance = 0.6, BossArmorLegendaryChance = 0.0, RegularArmorEpicChance = 0.15 },
+        new() { BossStage = 20, WeaponMinLevel = 5, WeaponMaxLevel = 6, BossArmorEpicChance = 0.7, BossArmorLegendaryChance = 0.3, RegularArmorEpicChance = 0.20 },
+        new() { BossStage = 25, WeaponMinLevel = 6, WeaponMaxLevel = 7, BossArmorEpicChance = 0.6, BossArmorLegendaryChance = 0.4, RegularArmorEpicChance = 0.25 },
+        new() { BossStage = 30, WeaponMinLevel = 7, WeaponMaxLevel = 8, BossArmorEpicChance = 0.5, BossArmorLegendaryChance = 0.5, RegularArmorEpicChance = 0.30 }
+    };
+
+    // ── 특수 상자: 룬 또는 유물. 등급별로 룬 확률을 따로 둔다(나머지는 유물) ──
     public double RegularBoxRuneChance { get; set; }
-
-    /// <summary>중간보스 기본보상에 추가되는 영혼(정규 스테이지는 영혼을 주지 않는다).</summary>
-    public int MidBossBaseSoulsBonus { get; set; }
-    public int MidBossGoldOption { get; set; }
-    public double MidBossAttackBoost { get; set; }
-    public double MidBossHealthBoost { get; set; }
     public double MidBossBoxRuneChance { get; set; }
-
-    public int BossBaseSoulsBonus { get; set; }
-    public int BossGoldOption { get; set; }
-    public double BossAttackBoost { get; set; }
-    public double BossHealthBoost { get; set; }
     public double BossBoxRuneChance { get; set; }
+
+    // ── 능력치 상자: 공격력% / 체력 / 유틸(회피·공격속도·쿨타임 감소 중 하나)을 균등하게 굴린다 ──
+    // 공격력은 고정값이 아니라 "현재 공격력의 %"로 오른다(0.1 = +10%). 체력은 기존처럼 고정값.
+    public double RegularAttackPercent { get; set; }
+    public double RegularHealthBoost { get; set; }
+    public double MidBossAttackPercent { get; set; }
+    public double MidBossHealthBoost { get; set; }
+    public double BossAttackPercent { get; set; }
+    public double BossHealthBoost { get; set; }
+
+    /// <summary>스테이지가 오를수록 능력치 상자 수치도 같이 커지게 하는 스테이지당 가산치. `실제 적용값 = 기본값 + PerStage × CurrentStage`.</summary>
+    public double RegularAttackPercentPerStage { get; set; }
+    public double RegularHealthBoostPerStage { get; set; }
+    public double MidBossAttackPercentPerStage { get; set; }
+    public double MidBossHealthBoostPerStage { get; set; }
+    public double BossAttackPercentPerStage { get; set; }
+    public double BossHealthBoostPerStage { get; set; }
+
+    /// <summary>유틸 결과의 기본값(일반 스테이지 기준). 회피율/공격속도/쿨타임 감소 모두 비율(0.05 = 5%p/+5%/-5%).</summary>
+    public double UtilityDodgeBoost { get; set; } = 0.02;
+    public double UtilityAttackSpeedBoost { get; set; } = 0.04;
+    public double UtilityCooldownReduction { get; set; } = 0.05;
+    /// <summary>중간보스/보스 스테이지의 유틸 수치 배율.</summary>
+    public double MidBossUtilityScale { get; set; } = 1.5;
+    public double BossUtilityScale { get; set; } = 2.0;
+
+    /// <summary>중간보스/보스 기본보상에 추가되는 영혼(정규 스테이지는 영혼을 주지 않는다).</summary>
+    public int MidBossBaseSoulsBonus { get; set; }
+    public int BossBaseSoulsBonus { get; set; }
+
+    // ── 장비 상자의 골드 후보 금액: `기본 + PerStage × 스테이지`(유물 골드 배율 적용). 장비/방어구가 마음에 안 들거나 그리드가 가득 찼을 때의 대안. ──
+    public int RegularGoldOption { get; set; }
+    public int MidBossGoldOption { get; set; }
+    public int BossGoldOption { get; set; }
+    public double RegularGoldPerStage { get; set; }
+    public double MidBossGoldOptionPerStage { get; set; }
+    public double BossGoldOptionPerStage { get; set; }
+}
+
+/// <summary>장비 상자 표의 한 구간(예: 20스테이지 보스 = 무기 Lv.7~8, 방어구 Epic~Legendary).</summary>
+public sealed class EquipmentBoxBand
+{
+    /// <summary>이 구간의 보스 스테이지(5·10·15·20·25·30). 그 직전 4개 일반 스테이지도 이 구간을 쓴다.</summary>
+    public int BossStage { get; set; }
+    public int WeaponMinLevel { get; set; }
+    public int WeaponMaxLevel { get; set; }
+
+    /// <summary>보스 스테이지의 방어구 등급 확률. 남는 확률이 Rare다(Common은 나오지 않음).</summary>
+    public double BossArmorEpicChance { get; set; }
+    public double BossArmorLegendaryChance { get; set; }
+
+    /// <summary>일반 스테이지의 방어구 Epic 확률(나머지는 Rare). 일반 스테이지에서는 Legendary가 나오지 않는다.</summary>
+    public double RegularArmorEpicChance { get; set; }
 }

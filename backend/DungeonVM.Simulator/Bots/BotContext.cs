@@ -17,7 +17,8 @@ public sealed class BotContext
     public VendingMachine Machine => StageLoop.Machine;
     public List<Character> Party => StageLoop.Party;
 
-    /// <summary>4x4 그리드(무기+방어구 공유)가 가득 차 새로 얻은 아이템을 강제로 팔아치운 횟수. 그리드 병목 메트릭용.</summary>
+    /// <summary>4x4 그리드(무기+방어구 공유)가 가득 차서 뽑기가 막힌 횟수(골드는 쓰지 않음)와 장착 교체 중 강제 판매한 횟수.
+    /// 그리드 병목 메트릭용.</summary>
     public int GridBottleneckSells { get; private set; }
 
     /// <summary>룬이 소켓된 무기를 보존하기 위해 유효한 머지를 의도적으로 건너뛴 횟수. 룬 소멸 회피 메트릭용.</summary>
@@ -76,19 +77,66 @@ public sealed class BotContext
     public bool ShouldSaveFor(int goalCost, int stagesAhead = 2)
     {
         int shortfall = goalCost - Currency.Gold;
-        if (shortfall <= 0) return false;
+        // 이미 목표액을 다 모았다면(shortfall<=0) 여전히 저축 유지 상태다 — 실제 구매는 다음 정비 페이즈에서만
+        // 일어나므로, 여기서 false를 반환해 즉시 재뽑기를 허용하면 전투 중 몬스터 처치 골드로 막 목표액을
+        // 채운 바로 그 틱에 재뽑기 루프가 그 골드를 전부 태워버려 정비 페이즈가 오기도 전에 목표를 놓친다
+        // (실측: 700G 캐릭터 슬롯을 노리는데 정비 페이즈 시작 시점 최대 골드가 800런 내내 651을 못 넘었음 —
+        // 700 문턱을 넘는 순간마다 같은 틱에서 바로 소진된 것).
+        if (shortfall <= 0)
+        {
+            SavingsHolds++;
+            return true;
+        }
 
         bool shouldSave = shortfall <= ProjectedIncome(stagesAhead);
         if (shouldSave) SavingsHolds++;
         return shouldSave;
     }
 
-    public bool TryRollWeapon()
+    /// <summary>자판기 뽑기 비용을 낸다. 속임수 동전 유물로 "다음 뽑기 무료"가 걸려 있으면 무료. 뽑을 때마다 다음 뽑기가 무료가 될
+    /// 확률(FreeRollChance)을 굴린다.</summary>
+    private bool SpendForRoll(int cost)
     {
-        if (!Currency.TrySpend(CurrencyType.Gold, VendingMachine.WeaponRollCost))
+        if (Machine.NextRollFree)
+        {
+            Machine.NextRollFree = false;
+        }
+        else if (!Currency.TrySpend(CurrencyType.Gold, cost))
+        {
+            return false;
+        }
+
+        double chance = StageLoop.Mods.FreeRollChance;
+        if (chance > 0 && Rng.NextDouble() < chance) Machine.NextRollFree = true;
+        return true;
+    }
+
+    public bool TryRollWeapon() => TryRollWeapon(null);
+
+    /// <summary>excludedTypes에 해당하는 타입이 나오면 그리드에 넣지 않고 즉시 판매한다 — 파티가 애초에
+    /// 쓰지 않을 무기 타입이 그리드만 차지하다 환급 없이 강제 폐기(GridBottleneckSells)되는 것보다,
+    /// 즉시 팔아 판매 환급이라도 받는 편이 낫다.</summary>
+    public bool TryRollWeapon(ISet<WeaponType>? excludedTypes)
+    {
+        // 프로토타입(index.html rollWeapon)과 동일: 빈 칸이 없으면 뽑기 자체가 막히고 골드는 나가지 않는다.
+        // (예전엔 골드를 쓰고 뽑은 뒤 환급 없이 버렸는데, 그러면 사람보다 골드를 훨씬 낭비하는 것으로 나왔다.)
+        if (Inventory.Grid.IsFull)
+        {
+            GridBottleneckSells++;
+            return false;
+        }
+
+        if (!SpendForRoll(VendingMachine.WeaponRollCost))
             return false;
 
         var weapon = Machine.RollWeapon(Rng);
+
+        if (excludedTypes is { Count: > 0 } && excludedTypes.Contains(weapon.Type))
+        {
+            Currency.SellWeapon(weapon);
+            return true;
+        }
+
         if (!Inventory.ReceiveWeapon(weapon))
             GridBottleneckSells++; // 그리드(무기+방어구 공유)가 가득 차 환급 없이 즉시 폐기(판매 환급을 주면 롤-판매 무한 차익 루프가 생긴다)
 
@@ -98,7 +146,7 @@ public sealed class BotContext
     public bool TryUpgradeAttack()
     {
         if (!Machine.CanUpgradeAttack) return false;
-        int cost = (int)(Machine.AttackUpgradeCost * (1 - StageLoop.RelicUpgradeDiscountRatio));
+        int cost = Machine.AttackUpgradeCost;
         if (!Currency.TrySpend(CurrencyType.Gold, cost)) return false;
         Machine.UpgradeAttackLevel();
         return true;
@@ -107,7 +155,7 @@ public sealed class BotContext
     public bool TryUpgradeDefense()
     {
         if (!Machine.CanUpgradeDefense) return false;
-        int cost = (int)(Machine.DefenseUpgradeCost * (1 - StageLoop.RelicUpgradeDiscountRatio));
+        int cost = Machine.DefenseUpgradeCost;
         if (!Currency.TrySpend(CurrencyType.Gold, cost)) return false;
         Machine.UpgradeDefenseLevel();
         return true;
@@ -141,7 +189,13 @@ public sealed class BotContext
 
     public bool TryRollArmor()
     {
-        if (!Currency.TrySpend(CurrencyType.Gold, VendingMachine.ArmorRollCost))
+        if (Inventory.Grid.IsFull) // 무기와 같은 칸을 공유 — 가득 차면 뽑기가 막힌다(골드 미소모)
+        {
+            GridBottleneckSells++;
+            return false;
+        }
+
+        if (!SpendForRoll(VendingMachine.ArmorRollCost))
             return false;
 
         var armor = Machine.RollArmor(Rng);

@@ -70,9 +70,5 @@ public static class WeaponCatalog
     public static double DamageAtTier(WeaponType type, int tier)
         => Table[type].BaseDamage * LevelMultiplierAt(tier) * (1 + SkillBonusAt(tier));
 
-    /// <summary>성서(Bible) 전용: PullAggro 필드를 초당 치유량 기초값으로 재사용해 파티 전체를 회복시킨다.</summary>
-    public static double HealPerSecondAtTier(WeaponType type, int tier)
-        => Table[type].PullAggro * LevelMultiplierAt(tier) * (1 + SkillBonusAt(tier));
-
     public static RowPosition RowOf(WeaponType type) => Table[type].Row;
 }

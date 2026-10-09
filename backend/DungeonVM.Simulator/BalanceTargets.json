@@ -1,0 +1,135 @@
+{
+  "_readme": "밸런스 목표 지표 초안 v0 (2026-10-05, 플레이 성향별 지표 추가 2026-10). 시뮬레이터(균형형 봇)가 측정한 값을 이 목표와 비교해 '벗어난 지표'를 LLM에 넘기고, LLM은 tunableParameters 화이트리스트 안에서만 수치 변경안을 제안한다. 모든 범위는 디자이너가 확정하기 전의 초안이며, 봇은 '평균적인 플레이어'의 대리 지표다(숙련 유저는 더 잘 깬다 — 실제 플레이테스트로 보정 필요).",
+
+  "proxyPlayer": {
+    "bot": "Balanced",
+    "note": "사람 숙련자는 30스테 완주 약 20%(개발자 본인 경험), 팀원 일반 플레이는 20/25스테에서 사망한 사례가 있어 이 값을 보정 기준으로 쓴다."
+  },
+
+  "runClearRate": {
+    "min": 0.03,
+    "max": 0.08,
+    "current": 0.101,
+    "rationale": "평균 플레이어가 30스테를 한 번에 깨는 확률. 아래 스테이지별 목표를 곱하면 약 5%가 나오도록 설계."
+  },
+
+  "stageWinRate": {
+    "_desc": "해당 스테이지에 '도달했을 때' 클리어할 조건부 승률(봇 기준).",
+    "bands": [
+      { "name": "일반 1~9스테", "stages": [1,2,3,4,6,7,8,9], "min": 0.97, "max": 1.00, "current": 1.00, "rationale": "초반 이탈 방지(폐사율 억제)" },
+      { "name": "일반 11~29스테", "stages": [11,12,13,14,16,17,18,19,21,22,23,24,26,27,28,29], "min": 0.90, "max": 0.99, "current": 1.00, "rationale": "보스 사이 구간이 현재 100%라 긴장감이 없음. 단 일반 스테이지 난이도를 올리면 폐사율이 급증하므로 최대한 완만하게" },
+      { "name": "중간보스 5·15·25스테", "stages": [5,15,25], "min": 0.70, "max": 0.90, "current": {"5": 0.71, "15": 1.00, "25": 0.99}, "rationale": "15/25가 100%로 사실상 보스가 아님" },
+      { "name": "대형보스 10·20스테", "stages": [10,20], "min": 0.50, "max": 0.75, "current": {"10": 0.45, "20": 0.80}, "rationale": "10스테는 너무 어렵고 20스테는 너무 쉬움 — 중반 벽이 거꾸로 배치됨" },
+      { "name": "최종보스 30스테", "stages": [30], "min": 0.10, "max": 0.25, "current": 0.133, "rationale": "평균 플레이어(Balanced 봇)의 최종 보스 승률. 숙련자(skillTiers.expert)와 실력 차이가 크므로 평균 플레이어는 낮게 둔다(숙련자 40~60%는 skillTiers에서 따로 본다)." }
+    ]
+  },
+
+  "playstyles": {
+    "_desc": "플레이 성향이 다른 봇들을 같은 밸런스로 돌려 비교한다. 위 스테이지 지표는 Balanced 봇 하나로 재고, 여기서는 '어느 성향도 압도적이거나 막혀 있지 않은가'만 본다. 수치는 초안이다.",
+    "bots": ["Balanced", "Hoarder", "Spender", "BossPrep"],
+    "maxClearRate": 0.10,
+    "minWeakToStrongStageRatio": 0.60,
+    "rationale": "Hoarder(저축형)·Spender(즉시 강화형)·BossPrep(보스 직전 특수 상자)이 모두 비슷한 수준으로 진행되도록, 즉 어떤 방식으로 플레이해도 크게 불리하지 않게. 0.6은 가장 약한 성향의 평균 클리어 스테이지가 가장 강한 성향의 60% 이상이라는 뜻."
+  },
+
+  "skillTiers": {
+    "_desc": "실력 단계별 목표. 위의 stageWinRate/runClearRate 목표는 평균 플레이어(Balanced 봇) 기준이고, 여기서는 최적 루트를 아는 숙련자(Expert 봇 = 개발자 본인 플레이 루트)가 후반을 어떻게 깨는지를 따로 본다. 한쪽 실력에 난이도를 맞추면 다른 쪽이 너무 쉬워지거나 어려워지므로 둘을 동시에 만족시키는 것이 목표다.",
+    "expert": {
+      "bot": "Expert",
+      "reachStage": 29,
+      "finalStage": 30,
+      "reach": { "min": 0.85, "max": 0.97, "rationale": "숙련자는 29스테이지까지는 높은 확률로 깬다(개발자 경험: 29스테이지까지는 쉽고 30스테이지가 어렵다)." },
+      "finalWinRate": { "min": 0.40, "max": 0.60, "rationale": "29스테이지까지 온 숙련자가 최종 보스(30스테이지)를 깰 확률. 마지막 관문은 숙련자에게도 도전적으로." }
+    },
+    "expertWeapon": {
+      "bot": "ExpertWeapon",
+      "reachStage": 29,
+      "finalStage": 30,
+      "reach": { "min": 0.80, "max": 0.97, "rationale": "능력치 상자를 한 번도 안 고르고 장비 상자만 골라도(무기 키우기 중심) 숙련자는 29스테이지까지 도달해야 한다 — 능력치 상자가 필수가 되면 안 된다(플레이 피드백)." }
+    }
+  },
+
+  "relicBalance": {
+    "_desc": "같은 보스 스테이지의 선택지끼리 강제 선택 후 30스테 완주율을 비교(스테별 6000런).",
+    "maxRunClearRatioWithinChoice": 2.0,
+    "current": { "5": 5.0, "10": 2.3, "15": 1.4, "20": 1.9, "25": 1.2 },
+    "rationale": "어떤 유물을 골라도 완주율 격차가 2배 이내여야 '선택'이 의미 있음. 현재 5스테 약탈자의 깃발 vs 족장의 곤봉이 5배로 유일한 이상치."
+  },
+
+  "weaponTypeShare": {
+    "_desc": "런 종료 시점 장착 무기의 종류별 비율.",
+    "default": { "min": 0.08, "max": 0.22 },
+    "overrides": { "Shield": { "min": 0.15, "max": 0.32, "reason": "탱커 고정 슬롯이라 비율이 높은 것은 정상" } },
+    "current": { "Sword": 0.155, "Shield": 0.285, "Dagger": 0.151, "Bow": 0.105, "Staff": 0.153, "Bible": 0.151 },
+    "rationale": "특정 무기 종류가 쓰이지 않으면 그 종류의 스킬/수치를 재검토. 단 보스전에서 단검/활이 검/지팡이보다 2~3배 강한 구조적 격차는 이 지표에 안 잡히므로 별도 확인 필요."
+  },
+
+  "growth": {
+    "status": "draft-needs-designer-decision",
+    "_desc": "원래 연구 질문(고레벨 무기가 강한데 왜 중간 레벨에 안주하는가)을 밸런스 목표로 바꾼 지표.",
+    "avgMaxWeaponTierAtStage": [
+      { "stage": 10, "min": 2.5 },
+      { "stage": 20, "min": 6.0 },
+      { "stage": 30, "min": 8.0 }
+    ],
+    "current": { "10": 2.1, "20": 5.4, "30": 5.6 },
+    "gridBottleneckSellsPerClearedStage": { "max": 4.0, "current": 8.5 },
+    "rationale": "현재 Lv.10 이상(스킬 티어2 해금)은 거의 도달 불가. 이 목표를 켜면 합성/뽑기 관련 수치까지 튜닝 대상이 되므로 디자이너 확정 필요."
+  },
+
+  "tunableParameters": {
+    "_desc": "LLM이 변경을 제안할 수 있는 DefaultBalance.json 스칼라 필드(경로: 섹션.필드). 범위를 벗어난 제안은 거부한다.",
+    "weapons": {
+      "skillBonusAtLevel5": { "min": 0.2, "max": 0.7, "current": 0.52 }
+    },
+    "wave": {
+      "mobBaseHealth":     { "min": 40,   "max": 80,   "current": 68 },
+      "mobBaseDamage":     { "min": 3.0,  "max": 7.0,  "current": 4.5 },
+      "midBossHealth":     { "min": 450,  "max": 900,  "current": 580 },
+      "midBossDamage":     { "min": 14,   "max": 26,   "current": 18 },
+      "bigBossHealth":     { "min": 1200, "max": 2200, "current": 1750 },
+      "bigBossDamage":     { "min": 24,   "max": 40,   "current": 30 },
+      "difficultyGateMultiplier": { "min": 1.8, "max": 3.2, "current": 2.3 },
+      "bossNerfMultiplier":       { "min": 0.5, "max": 1.0, "current": 0.7 },
+      "scalePerStage":            { "min": 0.025, "max": 0.045, "current": 0.035 },
+      "stage5BossMultiplier":     { "min": 0.8,  "max": 2.0,  "current": 1.12 },
+      "stage10BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.05 },
+      "stage20BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 0.95 },
+      "stage30BossMultiplier":    { "min": 0.8,  "max": 2.5,  "current": 1.0 }
+    },
+    "stageRewardChoice": {
+      "regularAttackPercent":          { "min": 0.01,  "max": 0.06,  "current": 0.03 },
+      "midBossAttackPercent":          { "min": 0.03,  "max": 0.12,  "current": 0.06 },
+      "bossAttackPercent":             { "min": 0.05,  "max": 0.20,  "current": 0.10 },
+      "regularAttackPercentPerStage":  { "min": 0.0005, "max": 0.004, "current": 0.0015 },
+      "midBossAttackPercentPerStage":  { "min": 0.001,  "max": 0.006, "current": 0.002 },
+      "bossAttackPercentPerStage":     { "min": 0.002,  "max": 0.010, "current": 0.0036 },
+      "regularHealthBoost":            { "min": 3,     "max": 20,    "current": 10 },
+      "midBossHealthBoost":            { "min": 6,     "max": 40,    "current": 20 },
+      "bossHealthBoost":               { "min": 10,    "max": 70,    "current": 35 },
+      "regularHealthBoostPerStage":    { "min": 0.0,   "max": 1.0,   "current": 0.4 },
+      "midBossHealthBoostPerStage":    { "min": 0.0,   "max": 2.0,   "current": 0.75 },
+      "bossHealthBoostPerStage":       { "min": 0.0,   "max": 3.0,   "current": 1.0 },
+      "regularGoldOption":             { "min": 8,     "max": 60,    "current": 18 },
+      "midBossGoldOption":             { "min": 20,    "max": 140,   "current": 40 },
+      "bossGoldOption":                { "min": 40,    "max": 260,   "current": 75 },
+      "regularGoldPerStage":           { "min": 0.25,  "max": 4.0,   "current": 0.75 },
+      "midBossGoldOptionPerStage":     { "min": 0.5,   "max": 7,     "current": 1.5 },
+      "bossGoldOptionPerStage":        { "min": 1,     "max": 11,    "current": 2.5 },
+      "regularStageLowestLevelChance": { "min": 0.3,   "max": 0.8,   "current": 0.5 }
+    },
+    "weaponBaseDamage": {
+      "Sword":  { "min": 9, "max": 15, "current": 12 },
+      "Shield": { "min": 3, "max": 8,  "current": 5 },
+      "Dagger": { "min": 5, "max": 9,  "current": 7 },
+      "Bow":    { "min": 8, "max": 12, "current": 10 },
+      "Staff":  { "min": 7, "max": 12, "current": 9 },
+      "Bible":  { "min": 6, "max": 10, "current": 8 }
+    },
+    "notTunableYet": [
+      "보스 유물 수치(곤봉 +10/20%, 깃발 +20/40% 등) — 현재 C# 코드에 하드코딩. LLM이 조정하려면 DefaultBalance.json으로 옮겨야 함",
+      "자판기 업그레이드 비용/캐릭터 슬롯 비용/그리드 해금 비용 — 배열 필드라 1단계에서는 제외",
+      "무기 스킬 수치(암살/속사 등)와 무기 뽑기 확률표 — 프로토타입 원본과 동기화된 값이라 임의 변경 금지(프로토타입 동시 수정 필요)"
+    ]
+  }
+}

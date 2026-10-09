@@ -1,4 +1,5 @@
 using DungeonVM.Core.Enums;
+using DungeonVM.Core.Models;
 using DungeonVM.Core.Systems;
 
 namespace DungeonVM.Simulator.Bots;
@@ -33,6 +34,11 @@ public sealed class SpaceExpansionBot : IBot
         }
         EquipUnarmed(ctx);
 
+        // 최소 방어 투자: 맨몸 방어구 캐릭터는 최소 한 벌은 챙긴다 — 그리드에 이미 있으면 공짜로,
+        // 없으면 1회만 굴려서라도 채운다. 초반(1~5스테) 튜토리얼 구간에서 방어구 없이 죽는 걸
+        // 막는 최소한의 안전장치이며, "세로 성장" 정체성(그리드/무기 올인)은 그대로 유지한다.
+        EquipMinimalArmor(ctx);
+
         // 1순위: 그리드 해금 (동시 보관 가능한 재료를 늘려 고레벨 머지 체인을 지원)
         while (ctx.TryUnlockGrid()) { }
 
@@ -56,9 +62,22 @@ public sealed class SpaceExpansionBot : IBot
             ctx.TryEquipFromGrid(character);
     }
 
+    private static void EquipMinimalArmor(BotContext ctx)
+    {
+        foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is not null && c.EquippedArmor is null))
+        {
+            if (ctx.TryEquipArmorFromGrid(character)) continue;
+            if (ctx.TryRollArmor())
+                ctx.TryEquipArmorFromGrid(character);
+        }
+    }
+
     private static bool ShouldSaveForNextGoal(BotContext ctx)
         => !ctx.Inventory.Grid.IsFullyUnlocked && ctx.ShouldSaveFor(ctx.Inventory.Grid.NextUnlockGoldCost());
 
     /// <summary>항상 골드 — 그리드 해금과 끝없는 재뽑기에 쏟아부을 현금이 최우선이다.</summary>
-    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.Gold);
+    public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.EquipmentBox);
+
+    /// <summary>항상 첫 번째 후보 — 이 봇은 유물 취향이 없다.</summary>
+    public int ChooseBossRelic(BotContext ctx, IReadOnlyList<BossRelic> candidates) => 0;
 }
