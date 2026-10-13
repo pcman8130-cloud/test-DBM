@@ -80,7 +80,7 @@
   "tunableParameters": {
     "_desc": "LLM이 변경을 제안할 수 있는 DefaultBalance.json 스칼라 필드(경로: 섹션.필드). 범위를 벗어난 제안은 거부한다.",
     "weapons": {
-      "skillBonusAtLevel5": { "min": 0.2, "max": 0.7, "current": 0.52 }
+      "skillBonusAtLevel5": { "min": 0.2, "max": 0.7, "current": 0.58 }
     },
     "wave": {
       "mobBaseHealth":     { "min": 40,   "max": 80,   "current": 68 },
@@ -93,9 +93,10 @@
       "bossNerfMultiplier":       { "min": 0.5, "max": 1.0, "current": 0.7 },
       "scalePerStage":            { "min": 0.025, "max": 0.045, "current": 0.035 },
       "stage5BossMultiplier":     { "min": 0.8,  "max": 2.0,  "current": 1.12 },
-      "stage10BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.05 },
-      "stage20BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 0.95 },
-      "stage30BossMultiplier":    { "min": 0.8,  "max": 2.5,  "current": 1.0 }
+      "stage10BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.12 },
+      "stage20BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.02 },
+      "stage30BossMultiplier":    { "min": 0.8,  "max": 2.5,  "current": 1.0 },
+      "stage30BossDamageMultiplier": { "min": 0.6, "max": 1.2, "current": 0.85 }
     },
     "stageRewardChoice": {
       "regularAttackPercent":          { "min": 0.01,  "max": 0.06,  "current": 0.018 },

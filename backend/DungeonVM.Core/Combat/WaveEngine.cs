@@ -43,6 +43,8 @@ public static class WaveEngine
             30 => config.Stage30BossMultiplier,
             _ => 1.0,
         };
+        // 최종보스(30스테)는 체력은 그대로 두고 공격력만 따로 낮출 수 있다.
+        double bossDamageMult = bossMult * (stage == 30 ? config.Stage30BossDamageMultiplier : 1.0);
 
         if (IsMidBossStage(stage))
         {
@@ -50,7 +52,7 @@ public static class WaveEngine
                 name: $"MidBoss_S{stage}",
                 element: ElementType.None,
                 maxHealth: config.MidBossHealth * scale * bossMult,
-                damage: config.MidBossDamage * scale * bossMult,
+                damage: config.MidBossDamage * scale * bossDamageMult,
                 attacksPerSecond: config.MidBossAps,
                 goldReward: config.MidBossGoldBase + stage * config.MidBossGoldPerStage,
                 isMidBoss: true));
@@ -64,7 +66,7 @@ public static class WaveEngine
                 name: $"BigBoss_S{stage}_{element}",
                 element: element,
                 maxHealth: config.BigBossHealth * scale * bossMult,
-                damage: config.BigBossDamage * scale * bossMult,
+                damage: config.BigBossDamage * scale * bossDamageMult,
                 attacksPerSecond: config.BigBossAps,
                 goldReward: config.BigBossGoldBase + stage * config.BigBossGoldPerStage,
                 isBigBoss: true));

@@ -120,6 +120,8 @@ public sealed class WaveBalanceSection
     public double Stage10BossMultiplier { get; set; } = 1.0;
     public double Stage20BossMultiplier { get; set; } = 1.0;
     public double Stage30BossMultiplier { get; set; } = 1.0;
+    /// <summary>30스테이지 최종보스의 공격력에만 추가로 곱하는 배율(체력은 그대로). 파티가 한 방에 쓰러지는 느낌만 줄이고 싶을 때 쓴다(기본 1.0).</summary>
+    public double Stage30BossDamageMultiplier { get; set; } = 1.0;
 }
 
 public sealed class MetaProgressionBalanceSection

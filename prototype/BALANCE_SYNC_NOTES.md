@@ -170,3 +170,10 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
 ### 오크 주술사의 축복 삭제 + 스테이지 클리어 골드 상향
 - **오크 주술사의 축복 삭제**: 10스테이지 보스 유물은 괴력의 건틀렛·오우거의 피 2개가 된다(스킬 사용 불가 메커니즘 `SkillsDisabled`도 함께 제거).
 - **스테이지 클리어 기본 골드 상향**: `40 + 8×스테이지` → **`48 + 10×스테이지`**(약 +20%, 백엔드 `victoryGoldBase`/`victoryGoldPerStage`, 프로토타입 `onStageClear`). 지갑 없이도 초반 골드가 덜 부족하도록.
+
+### LLM 튜닝 일부 반영 + 30스테이지 보스 공격력 하향
+LLM(Gemini) 튜닝안 중 부작용이 없는 3개만 반영(10·20스테이지 대형보스 승률을 목표 구간으로, 후반 무기 성장 소폭 강화):
+- `wave.stage10BossMultiplier` 1.05 → **1.12**, `wave.stage20BossMultiplier` 0.95 → **1.02**
+- `weapons.skillBonusAtLevel5` 0.52 → **0.58**(프로토타입 `SKILL_FLAT_BONUS` = [0, 0.58, 0.93, 1.58])
+LLM이 같이 제안한 `stage30BossMultiplier` 1.0 → 0.8은 숙련자 30스테이지 승률을 98.8%로 무너뜨려 채택하지 않았다.
+- 대신 **30스테이지 보스 공격력만 15% 낮추는 별도 배율** `wave.stage30BossDamageMultiplier` = **0.85**를 추가했다(체력은 그대로, 프로토타입 `STAGE30_BOSS_DMG_MULT`).
