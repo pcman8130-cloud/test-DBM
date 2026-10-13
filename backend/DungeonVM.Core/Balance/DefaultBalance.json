@@ -82,8 +82,8 @@
   },
   "stageLoop": {
     "maxStage": 30,
-    "victoryGoldBase": 40,
-    "victoryGoldPerStage": 8,
+    "victoryGoldBase": 48,
+    "victoryGoldPerStage": 10,
     "victorySoulsBase": 2,
     "victorySoulsStageDivisor": 3
   },
@@ -129,9 +129,9 @@
       { "bossStage": 25, "weaponMinLevel": 6, "weaponMaxLevel": 7, "bossArmorEpicChance": 0.6, "bossArmorLegendaryChance": 0.4, "regularArmorEpicChance": 0.25 },
       { "bossStage": 30, "weaponMinLevel": 7, "weaponMaxLevel": 8, "bossArmorEpicChance": 0.5, "bossArmorLegendaryChance": 0.5, "regularArmorEpicChance": 0.3 }
     ],
-    "regularBoxRuneChance": 0.5,
-    "midBossBoxRuneChance": 0.5,
-    "bossBoxRuneChance": 0.5,
+    "regularBoxRuneChance": 0.85,
+    "midBossBoxRuneChance": 0.85,
+    "bossBoxRuneChance": 0.85,
     "regularAttackPercent": 0.018,
     "regularHealthBoost": 6,
     "midBossAttackPercent": 0.036,

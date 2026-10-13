@@ -12,7 +12,8 @@ public enum RelicKind
 /// <summary>
 /// 유물 1종의 정의. Mods는 이 유물이 주는 효과 수치이고, GoldOnPick/BansWeapon은 획득 즉시 일어나는 일회성 효과다.
 /// UnlockStage: 보스 유물은 그 보스 스테이지, 일반 유물은 이 스테이지 이후의 보상부터 등장한다.
+/// Weight: 특수 상자 후보로 뽑힐 상대 가중치(기본 1, 낮을수록 드물게 나온다).
 /// </summary>
 public sealed record RelicDef(
     string Id, string Name, string Description, RelicKind Kind, int UnlockStage, RelicMods Mods,
-    int GoldOnPick = 0, bool BansWeapon = false);
+    int GoldOnPick = 0, bool BansWeapon = false, double Weight = 1.0);

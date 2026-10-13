@@ -22,6 +22,7 @@ public sealed class RelicMods
     public double BossDamageTakenPct;       // 보스에게 받는 피해 +%
     public double AoeDamageTakenPct;        // 적의 범위 공격 피해 +%
     public double DamageReductionFlat;      // 받는 피해 고정 감소(공격 1회당)
+    public double BossDamageReductionFlat;  // 보스에게 받을 때 추가로 고정 감소(공격 1회당)
     public double MaxHealthFlat;            // 최대 체력 + (고정)
     public double MaxHealthPct;             // 최대 체력 +%
     public double Dodge;                    // 회피율 +
@@ -47,14 +48,13 @@ public sealed class RelicMods
     public bool FireAttacks;                // 모든 공격에 화염 속성 부여
     public double FireRuneDotMult = 1.0;    // 불 룬 장착 시 화염 도트 피해 배수
     public bool HolyAttacks;                // 룬 없이도 모든 공격에 흡혈 부여
-    public bool BibleHealer;                // 성서가 기본공격 대신 공격력만큼 아군을 치유
 
     public void Add(RelicMods o)
     {
         AttackPct += o.AttackPct; AttackSpeedPct += o.AttackSpeedPct;
         PhysicalAttackPct += o.PhysicalAttackPct; PhysicalAttackSpeedPct += o.PhysicalAttackSpeedPct;
         MagicAttackPct += o.MagicAttackPct; BossDamagePct += o.BossDamagePct;
-        DamageReductionFlat += o.DamageReductionFlat; DamageTakenPct += o.DamageTakenPct; BossDamageTakenPct += o.BossDamageTakenPct; AoeDamageTakenPct += o.AoeDamageTakenPct;
+        DamageReductionFlat += o.DamageReductionFlat; BossDamageReductionFlat += o.BossDamageReductionFlat; DamageTakenPct += o.DamageTakenPct; BossDamageTakenPct += o.BossDamageTakenPct; AoeDamageTakenPct += o.AoeDamageTakenPct;
         MaxHealthFlat += o.MaxHealthFlat; MaxHealthPct += o.MaxHealthPct; Dodge += o.Dodge;
         StartShield += o.StartShield; RegenPerSecond += o.RegenPerSecond; HealOnAttack += o.HealOnAttack;
         GoldGainPct += o.GoldGainPct; GoldPerKill += o.GoldPerKill; FreeRollChance += o.FreeRollChance;
@@ -62,6 +62,6 @@ public sealed class RelicMods
         MeleeAoeChance += o.MeleeAoeChance; MeleeAoeRatio = Math.Max(MeleeAoeRatio, o.MeleeAoeRatio);
         ExtraAttackChance += o.ExtraAttackChance;
         FireAttacks |= o.FireAttacks; FireRuneDotMult = Math.Max(FireRuneDotMult, o.FireRuneDotMult);
-        HolyAttacks |= o.HolyAttacks; BibleHealer |= o.BibleHealer;
+        HolyAttacks |= o.HolyAttacks;
     }
 }

@@ -436,7 +436,7 @@ public sealed class BalancedBot : IBot
     private static readonly List<string> RelicPreferenceOrder = new()
     {
         "command_flag", "chief_epaulette", "goblin_wallet",       // 5스테
-        "gauntlet", "ogre_blood", "orc_shaman",                   // 10스테
+        "gauntlet", "ogre_blood",                                // 10스테
         "mystic_cloak", "flame_tail", "salamander_claw",          // 15스테
         "ancient_guardian", "rune_tablet", "ancient_coin",        // 20스테
         "scale_wing", "dragon_orb",                               // 25스테

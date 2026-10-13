@@ -9,20 +9,19 @@ public static class RelicCatalog
     private static RelicDef Boss(int stage, string id, string name, string desc, RelicMods mods, int goldOnPick = 0, bool bansWeapon = false)
         => new(id, name, desc, RelicKind.Boss, stage, mods, goldOnPick, bansWeapon);
 
-    private static RelicDef Regular(int unlockStage, string id, string name, string desc, RelicMods mods)
-        => new(id, name, desc, RelicKind.Regular, unlockStage, mods);
+    private static RelicDef Regular(int unlockStage, string id, string name, string desc, RelicMods mods, double weight = 1.0)
+        => new(id, name, desc, RelicKind.Regular, unlockStage, mods, Weight: weight);
 
     public static readonly IReadOnlyList<RelicDef> All = new List<RelicDef>
     {
         // ── 5스테이지 ──
-        Boss(5, "goblin_wallet", "탐욕의 고블린 지갑", "모든 골드 획득량 +25%, 받는 피해 +10%", new() { GoldGainPct = 0.25, DamageTakenPct = 0.10 }),
+        Boss(5, "goblin_wallet", "탐욕의 고블린 지갑", "모든 골드 획득량 +25%, 받는 피해 +5%", new() { GoldGainPct = 0.25, DamageTakenPct = 0.05 }),
         Boss(5, "command_flag", "전투 지휘 깃발", "공격력 +10%, 공격속도 +10%", new() { AttackPct = 0.10, AttackSpeedPct = 0.10 }),
-        Boss(5, "chief_epaulette", "족장의 견장", "받는 피해 5 감소(공격 1회당 고정값)", new() { DamageReductionFlat = 5 }),
+        Boss(5, "chief_epaulette", "족장의 견장", "받는 피해 3 감소, 보스에게는 8 감소(공격 1회당 고정값)", new() { DamageReductionFlat = 3, BossDamageReductionFlat = 5 }),
 
         // ── 10스테이지 ──
         Boss(10, "gauntlet", "괴력의 건틀렛", "물리 무기(활·단검·검·방패) 공격력 +30%, 공격속도 -10%", new() { PhysicalAttackPct = 0.30, PhysicalAttackSpeedPct = -0.10 }),
-        Boss(10, "orc_shaman", "오크 주술사의 축복", "성서가 기본공격 대신 공격력만큼 가장 체력이 낮은 아군을 치유", new() { BibleHealer = true }),
-        Boss(10, "ogre_blood", "오우거의 피", "최대 체력 +50", new() { MaxHealthFlat = 50 }),
+        Boss(10, "ogre_blood", "오우거의 피", "최대 체력 +40", new() { MaxHealthFlat = 40 }),
 
         // ── 15스테이지 ──
         Boss(15, "salamander_claw", "셀레멘더의 발톱", "모든 공격에 화염 속성 부여(불 룬 장착 시 화염 도트 피해 ×1.5)", new() { FireAttacks = true, FireRuneDotMult = 1.5 }),
@@ -45,14 +44,14 @@ public static class RelicCatalog
         Regular(1, "mercenary_shield", "용병단의 방패", "받는 피해 -5%", new() { DamageTakenPct = -0.05 }),
         Regular(1, "battle_horn", "전투나팔", "공격력 +5%", new() { AttackPct = 0.05 }),
         Regular(1, "shadow_cloak", "그림자 망토", "회피율 +5%", new() { Dodge = 0.05 }),
-        Regular(1, "goblin_pouch", "고블린 주머니", "몬스터 처치 시 골드 +3", new() { GoldPerKill = 3 }),
+        Regular(1, "goblin_pouch", "고블린 주머니", "몬스터 처치 시 골드 +3", new() { GoldPerKill = 3 }, weight: 0.3),
         Regular(1, "harpy_feather", "하피의 깃털", "공격속도 +5%", new() { AttackSpeedPct = 0.05 }),
 
         // ── 일반 유물: 11스테이지부터 등장 ──
         Regular(11, "trick_coin", "속임수 동전", "자판기 뽑기 시 25% 확률로 다음 뽑기 무료", new() { FreeRollChance = 0.25 }),
         Regular(11, "first_aid_kit", "구급상자", "초당 체력 +1 회복", new() { RegenPerSecond = 1 }),
         Regular(11, "broken_hourglass", "부서진 모래시계", "스킬 쿨타임 -10%", new() { Cdr = 0.10 }),
-        Regular(11, "bloodstone", "혈석", "공격 시 체력 3 회복", new() { HealOnAttack = 3 }),
+        Regular(11, "bloodstone", "혈석", "공격 시 체력 3 회복", new() { HealOnAttack = 3 }, weight: 0.3),
         Regular(11, "giant_slayer", "거인 학살자", "보스에게 주는 피해 +10%", new() { BossDamagePct = 0.10 }),
 
         // ── 일반 유물: 21스테이지부터 등장 ──

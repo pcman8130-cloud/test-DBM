@@ -146,14 +146,6 @@ public sealed class BattleField
         var mods = _stageLoop.Mods;
         var weapon = c.EquippedWeapon;
 
-        // 오크 주술사의 축복: 성서는 기본공격 대신 공격력만큼 가장 체력 비율이 낮은 아군을 치유한다(피해는 주지 않는다).
-        if (mods.BibleHealer && weapon?.Type == WeaponType.Bible)
-        {
-            var wounded = _party.Where(a => a.IsAlive).OrderBy(a => a.CurrentHealth / a.MaxHealth).FirstOrDefault();
-            wounded?.Heal(c.AttackDamage * (1 + mods.SkillAmp + mods.SkillDamage));
-            return;
-        }
-
         // 쿨타임 감소는 스킬 발동 확률 증가로 근사(마법 무기는 Character.AttacksPerSecond에서 시전 속도로 반영).
         // 스킬 증폭/스킬 피해는 스킬 효과 크기 배율.
         double skillChanceMult = 1 + c.CooldownReduction;
@@ -257,7 +249,7 @@ public sealed class BattleField
         double mult = 1 + mods.DamageTakenPct + (fromBoss ? mods.BossDamageTakenPct : 0);
         if (aoe) mult *= 1 + mods.AoeDamageTakenPct;
         double afterPct = rawDamage * Math.Max(0.1, mult);
-        return Math.Max(Math.Max(1.0, rawDamage * 0.1), afterPct - mods.DamageReductionFlat);
+        return Math.Max(Math.Max(1.0, rawDamage * 0.1), afterPct - mods.DamageReductionFlat - (fromBoss ? mods.BossDamageReductionFlat : 0));
     }
 
     private double EffectiveAttacksPerSecond(Monster m)

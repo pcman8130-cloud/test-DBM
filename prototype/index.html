@@ -538,9 +538,9 @@
   //  - 능력치 상자: 후보 = 공격력%(현재 공격력의 %) / 체력(고정값) / 회피율 / 공격속도 / 쿨타임 감소 중 서로 다른 3개.
   //    공격력/체력은 `기본 + PerStage × 클리어한 스테이지`.
   var REWARD_CONFIG = {
-    normal:{ atkPct:0.018, atkPctPerStage:0.0009, hp:6, hpPerStage:0.25, runeChance:0.5, utilScale:1,   gold:18,  goldPerStage:0.75 },
-    mid:   { atkPct:0.036, atkPctPerStage:0.0012, hp:12, hpPerStage:0.45, runeChance:0.5, utilScale:1.5, gold:40,  goldPerStage:1.5 },
-    boss:  { atkPct:0.06, atkPctPerStage:0.0022, hp:21, hpPerStage:0.6,   runeChance:0.5, utilScale:2,   gold:75,  goldPerStage:2.5 }
+    normal:{ atkPct:0.018, atkPctPerStage:0.0009, hp:6, hpPerStage:0.25, runeChance:0.85, utilScale:1,   gold:18,  goldPerStage:0.75 },
+    mid:   { atkPct:0.036, atkPctPerStage:0.0012, hp:12, hpPerStage:0.45, runeChance:0.85, utilScale:1.5, gold:40,  goldPerStage:1.5 },
+    boss:  { atkPct:0.06, atkPctPerStage:0.0022, hp:21, hpPerStage:0.6,   runeChance:0.85, utilScale:2,   gold:75,  goldPerStage:2.5 }
   };
   var EQUIP_BOX = { weaponChance:0.5 };
   var REGULAR_LOWEST_LEVEL_CHANCE = 0.5;
@@ -641,13 +641,12 @@
      mods = 보유 유물을 합산하는 효과 수치(퍼센트 0.1 = 10%, 음수는 감소). M()이 합계를 돌려준다. */
   var RELIC_DEFS = {
     // 5스테이지
-    goblin_wallet:   { icon:'👛', name:'탐욕의 고블린 지갑', desc:'모든 골드 획득량 +25%, 받는 피해 +10%', kind:'boss', unlock:5, mods:{ goldGainPct:0.25, damageTakenPct:0.10 } },
+    goblin_wallet:   { icon:'👛', name:'탐욕의 고블린 지갑', desc:'모든 골드 획득량 +25%, 받는 피해 +5%', kind:'boss', unlock:5, mods:{ goldGainPct:0.25, damageTakenPct:0.05 } },
     command_flag:    { icon:'🚩', name:'전투 지휘 깃발', desc:'공격력 +10%, 공격속도 +10%', kind:'boss', unlock:5, mods:{ attackPct:0.10, aspdPct:0.10 } },
-    chief_epaulette: { icon:'🎖️', name:'족장의 견장', desc:'받는 피해 5 감소(공격 1회당 고정값)', kind:'boss', unlock:5, mods:{ damageReduction:5 } },
+    chief_epaulette: { icon:'🎖️', name:'족장의 견장', desc:'받는 피해 3 감소, 보스에게는 8 감소(공격 1회당 고정값)', kind:'boss', unlock:5, mods:{ damageReduction:3, bossDamageReduction:5 } },
     // 10스테이지
     gauntlet:        { icon:'🥊', name:'괴력의 건틀렛', desc:'물리 무기(활·단검·검·방패) 공격력 +30%, 공격속도 -10%', kind:'boss', unlock:10, mods:{ physAttackPct:0.30, physAspdPct:-0.10 } },
-    orc_shaman:      { icon:'🪄', name:'오크 주술사의 축복', desc:'성서가 기본공격 대신 공격력만큼 가장 체력이 낮은 아군을 치유', kind:'boss', unlock:10, mods:{ bibleHealer:true } },
-    ogre_blood:      { icon:'🩸', name:'오우거의 피', desc:'최대 체력 +50', kind:'boss', unlock:10, mods:{ hpFlat:50 } },
+    ogre_blood:      { icon:'🩸', name:'오우거의 피', desc:'최대 체력 +40', kind:'boss', unlock:10, mods:{ hpFlat:40 } },
     // 15스테이지
     salamander_claw: { icon:'🔥', name:'셀레멘더의 발톱', desc:'모든 공격에 화염 속성 부여(불 룬 장착 시 화염 도트 피해 ×1.5)', kind:'boss', unlock:15, mods:{ fireAttacks:true, fireRuneDotMult:1.5 } },
     mystic_cloak:    { icon:'🧥', name:'신비주의자의 망토', desc:'회피율 +15%, 공격속도 +10%', kind:'boss', unlock:15, mods:{ dodge:0.15, aspdPct:0.10 } },
@@ -666,13 +665,13 @@
     mercenary_shield:{ icon:'🛡️', name:'용병단의 방패', desc:'받는 피해 -5%', kind:'regular', unlock:1, mods:{ damageTakenPct:-0.05 } },
     battle_horn:     { icon:'📯', name:'전투나팔', desc:'공격력 +5%', kind:'regular', unlock:1, mods:{ attackPct:0.05 } },
     shadow_cloak:    { icon:'🕶️', name:'그림자 망토', desc:'회피율 +5%', kind:'regular', unlock:1, mods:{ dodge:0.05 } },
-    goblin_pouch:    { icon:'💰', name:'고블린 주머니', desc:'몬스터 처치 시 골드 +3', kind:'regular', unlock:1, mods:{ goldPerKill:3 } },
+    goblin_pouch:    { icon:'💰', name:'고블린 주머니', desc:'몬스터 처치 시 골드 +3', kind:'regular', unlock:1, mods:{ goldPerKill:3 }, weight:0.3 },
     harpy_feather:   { icon:'🪶', name:'하피의 깃털', desc:'공격속도 +5%', kind:'regular', unlock:1, mods:{ aspdPct:0.05 } },
     // 일반 유물: 11스테이지부터
     trick_coin:      { icon:'🎟️', name:'속임수 동전', desc:'자판기 뽑기 시 25% 확률로 다음 뽑기 무료', kind:'regular', unlock:11, mods:{ freeRoll:0.25 } },
     first_aid_kit:   { icon:'🧰', name:'구급상자', desc:'초당 체력 +1 회복', kind:'regular', unlock:11, mods:{ regen:1 } },
     broken_hourglass:{ icon:'⌛', name:'부서진 모래시계', desc:'스킬 쿨타임 -10%', kind:'regular', unlock:11, mods:{ cdr:0.10 } },
-    bloodstone:      { icon:'💎', name:'혈석', desc:'공격 시 체력 3 회복', kind:'regular', unlock:11, mods:{ healOnAttack:3 } },
+    bloodstone:      { icon:'💎', name:'혈석', desc:'공격 시 체력 3 회복', kind:'regular', unlock:11, mods:{ healOnAttack:3 }, weight:0.3 },
     giant_slayer:    { icon:'🪓', name:'거인 학살자', desc:'보스에게 주는 피해 +10%', kind:'regular', unlock:11, mods:{ bossDamagePct:0.10 } },
     // 일반 유물: 21스테이지부터
     expedition_badge:{ icon:'🏅', name:'원정대의 뱃지', desc:'보스에게 받는 피해 -10%', kind:'regular', unlock:21, mods:{ bossDamageTakenPct:-0.10 } },
@@ -799,13 +798,13 @@
 
   // 보유 유물(보스 + 일반)의 효과 합계. 유물이 바뀔 때만 invalidateMods()로 다시 계산한다.
   var MOD_KEYS = ['attackPct','aspdPct','physAttackPct','physAspdPct','magicAttackPct','bossDamagePct','damageTakenPct','bossDamageTakenPct',
-    'aoeDamageTakenPct','damageReduction','hpFlat','hpPct','dodge','startShield','regen','healOnAttack','goldGainPct','goldPerKill','freeRoll','cdr','magicCdr',
+    'aoeDamageTakenPct','damageReduction','bossDamageReduction','hpFlat','hpPct','dodge','startShield','regen','healOnAttack','goldGainPct','goldPerKill','freeRoll','cdr','magicCdr',
     'skillAmp','skillDamage','meleeAoeChance','meleeAoeRatio','extraAttackChance'];
   var modsCache = null;
   function invalidateMods(){ modsCache = null; }
   function M(){
     if(modsCache) return modsCache;
-    var m = { fireAttacks:false, fireRuneDotMult:1, holyAttacks:false, bibleHealer:false };
+    var m = { fireAttacks:false, fireRuneDotMult:1, holyAttacks:false };
     MOD_KEYS.forEach(function(k){ m[k] = 0; });
     Object.keys(state.relics).concat(Object.keys(state.bossRelics)).forEach(function(id){
       var d = RELIC_DEFS[id]; if(!d) return;
@@ -813,7 +812,6 @@
       MOD_KEYS.forEach(function(k){ if(x[k]) m[k] += x[k]; });
       if(x.fireAttacks) m.fireAttacks = true;
       if(x.holyAttacks) m.holyAttacks = true;
-      if(x.bibleHealer) m.bibleHealer = true;
       if(x.fireRuneDotMult) m.fireRuneDotMult = Math.max(m.fireRuneDotMult, x.fireRuneDotMult);
     });
     modsCache = m;
@@ -836,6 +834,17 @@
       var d = RELIC_DEFS[id];
       return d.kind==='regular' && d.unlock<=clearedStage && !state.relics[id];
     });
+  }
+  // 일반 유물의 등장 가중치(RELIC_DEFS의 weight, 기본 1 — 낮을수록 드물게 나온다)
+  function pickWeightedRelic(pool){
+    var total = 0;
+    pool.forEach(function(id){ total += (RELIC_DEFS[id].weight==null ? 1 : RELIC_DEFS[id].weight); });
+    var roll = Math.random()*total;
+    for(var i=0;i<pool.length;i++){
+      roll -= (RELIC_DEFS[pool[i]].weight==null ? 1 : RELIC_DEFS[pool[i]].weight);
+      if(roll<0) return pool[i];
+    }
+    return pool[pool.length-1];
   }
   function allowedWeaponTypes(){ return WEAPON_TYPES.filter(function(t){ return !state.bannedWeapons[t]; }); }
   // 속임수 동전: 뽑을 때마다 다음 뽑기가 무료일 확률을 굴린다.
@@ -1358,7 +1367,7 @@
     if(aoe) mult *= (1 + mm.aoeDamageTakenPct);
     var afterPct = raw*Math.max(0.1, mult);
     // 족장의 견장: 공격 1회당 고정 감소(아무리 줄어도 원래 피해의 10%, 최소 1은 들어온다)
-    return Math.max(Math.max(1, raw*0.1), afterPct - mm.damageReduction);
+    return Math.max(Math.max(1, raw*0.1), afterPct - mm.damageReduction - (fromBoss ? mm.bossDamageReduction : 0));
   }
   // 보호막(그을린 고목 방패)이 먼저 피해를 흡수한다.
   function damageChar(target, dmg){
@@ -1422,20 +1431,6 @@
     var target = pickMonsterTarget();
     if(!target) return;
     var mm = M();
-
-    // 오크 주술사의 축복: 성서는 기본공격 대신 공격력만큼 가장 체력 비율이 낮은 아군을 치유한다(피해는 주지 않는다).
-    if(mm.bibleHealer && c.weapon && c.weapon.type==='bible'){
-      var wounded = null;
-      state.characters.forEach(function(o){ if(o.alive && (!wounded || o.hp/o.maxHp < wounded.hp/wounded.maxHp)) wounded = o; });
-      if(wounded){
-        var healAmt0 = Math.round(c.atk*(1+mm.skillAmp+mm.skillDamage)*10)/10;
-        wounded.hp = Math.min(wounded.maxHp, wounded.hp+healAmt0);
-        var hel0 = document.querySelector('.char-mirror[data-id="'+wounded.id+'"]');
-        if(hel0) spawnFloat(hel0.querySelector('.dmg-layer'), '+'+healAmt0, 'heal');
-        log('🪄 오크 주술사의 축복! <b>'+c.name+'</b>의 성서가 <b>'+wounded.name+'</b>을(를) <b>'+healAmt0+'</b> 치유했습니다.');
-      }
-      return;
-    }
 
     var chanceMult = 1 + effectiveCdr(c);          // 쿨타임 감소 → 스킬 발동 확률 배율
     var powerMult = 1 + mm.skillAmp + mm.skillDamage; // 스킬 증폭/피해 → 스킬 효과 크기 배율
@@ -1561,7 +1556,7 @@
     state.phase='reward';
     var stage=state.stage;
     var tier=tierOf(stage);
-    var baseGold = Math.round((40+8*stage)*goldMult());
+    var baseGold = Math.round((48+10*stage)*goldMult());
     state.gold += baseGold;
     log('🎉 스테이지 <b>'+stage+'</b> 클리어! 기본 보상 <b>+'+baseGold+'G</b>');
 
@@ -1691,21 +1686,20 @@
   // 특수 상자 후보: 룬 또는 유물 3개(서로 다른 것). 유물은 클리어한 스테이지까지 해금된 일반 유물 중 아직 안 가진 것만,
   // 룬은 룬 보관함에 빈 칸이 있을 때만 나온다.
   function revealSpecial(o){
-    var list = [], runes = {}, relics = {}, guard = 0;
-    var pool = relicPoolFor(state.stage);
-    var runeAvail = firstEmptyRuneSlot()!==-1;
-    while(list.length<3 && guard++<200){
-      if(!pool.length && !runeAvail) break;
-      var wantRune = !pool.length ? true : (!runeAvail ? false : Math.random()<o.runeChance);
+    var list = [];
+    var pool = relicPoolFor(state.stage).slice();
+    var runePool = firstEmptyRuneSlot()===-1 ? [] : RUNE_IDS.slice();
+    // 후보 3개를 각각 독립적으로 룬(runeChance)/유물(나머지)로 정하고, 이미 뽑힌 것은 풀에서 빼서 서로 다르게 한다.
+    while(list.length<3 && (pool.length>0 || runePool.length>0)){
+      var wantRune = pool.length===0 || (runePool.length>0 && Math.random()<o.runeChance);
       if(wantRune){
-        var rid = RUNE_IDS[Math.floor(Math.random()*RUNE_IDS.length)];
-        if(runes[rid]) continue; runes[rid]=true;
+        var ri = Math.floor(Math.random()*runePool.length);
+        var rid = runePool.splice(ri,1)[0];
         var ru = RUNES[rid];
         list.push({ kind:'rune', icon:ru.icon, title:ru.name, desc:ru.desc, runeId:rid });
       } else {
-        var lid = pool[Math.floor(Math.random()*pool.length)];
-        if(relics[lid]){ if(Object.keys(relics).length>=pool.length) pool = []; continue; }
-        relics[lid]=true;
+        var lid = pickWeightedRelic(pool);
+        pool.splice(pool.indexOf(lid),1);
         var re = RELIC_DEFS[lid];
         list.push({ kind:'relic', icon:re.icon, title:re.name, desc:re.desc, relicId:lid });
       }
@@ -2214,6 +2208,25 @@
   document.getElementById('upgradeWeaponBtn').addEventListener('click', upgradeWeaponVend);
   document.getElementById('upgradeArmorBtn').addEventListener('click', upgradeArmorVend);
   document.getElementById('unlockGridBtn').addEventListener('click', unlockGridBatch);
+
+  /* ================= 실험용 개발자 모드 (주소 뒤에 ?dev=1) =================
+     콘솔에서 dev.gold(500) / dev.relic('command_flag') / dev.relic('ogre_blood') / dev.stage(10) / dev.list() / dev.clear() */
+  if(/[?&]dev=1/.test(location.search)){
+    window.dev = {
+      gold: function(n){ state.gold += (n==null ? 500 : n); renderAll(); return state.gold; },
+      relic: function(id){
+        var d = RELIC_DEFS[id];
+        if(!d) return '없는 유물: '+id+' (dev.list() 참고)';
+        if(d.kind==='boss') state.bossRelics[id] = true; else state.relics[id] = 1;
+        invalidateMods(); recomputeAllStats(); renderAll();
+        return d.name+' 보유';
+      },
+      clear: function(){ state.relics = {}; state.bossRelics = {}; invalidateMods(); recomputeAllStats(); renderAll(); return '유물 초기화'; },
+      stage: function(n){ state.stage = n; state.phase = 'prep'; spawnWave(n); renderAll(); return n+'스테이지'; },
+      list: function(){ return Object.keys(RELIC_DEFS).map(function(id){ var d = RELIC_DEFS[id]; return id+' — '+d.name+' ('+d.kind+(d.kind==='boss'?', '+d.unlock+'스테이지':', '+d.unlock+'+')+')'; }).join('\n'); }
+    };
+    console.log('개발자 모드: dev.gold(n) · dev.relic(id) · dev.stage(n) · dev.clear() · dev.list()');
+  }
 
   /* ================= boot ================= */
   function start(saved){

@@ -241,29 +241,40 @@ public sealed class StageLoop
     {
         // 클리어한 스테이지까지 해금된 일반 유물 중 아직 안 가진 것만 후보가 된다(CurrentStage는 이미 다음 스테이지).
         var relicPool = RelicCatalog.RegularPoolFor(CurrentStage - 1).Where(r => !OwnedRelicIds.Contains(r.Id)).ToList();
+        var runePool = RuneElements.ToList();
 
+        // 후보 3개를 각각 독립적으로 "룬(RuneChance) / 유물(나머지)"로 정하고, 이미 뽑힌 것은 풀에서 빼서 서로 다르게 한다
+        // (중복을 다시 뽑는 방식은 유물 쪽으로 확률이 쏠려서 쓰지 않는다).
         var list = new List<StageRewardCandidate>();
-        var runes = new HashSet<ElementType>();
-        var relics = new HashSet<string>();
-        for (int guard = 0; list.Count < 3 && guard < 200; guard++)
+        while (list.Count < 3 && (relicPool.Count > 0 || runePool.Count > 0))
         {
-            bool wantRune = relicPool.Count == 0 || rng.NextDouble() < option.RuneChance;
+            bool wantRune = relicPool.Count == 0 || (runePool.Count > 0 && rng.NextDouble() < option.RuneChance);
             if (wantRune)
             {
-                var element = RuneElements[rng.Next(RuneElements.Length)];
-                if (runes.Add(element))
-                    list.Add(new(StageRewardOutcomeKind.Rune, $"{element} 룬", RuneElement: element));
+                var element = runePool[rng.Next(runePool.Count)];
+                runePool.Remove(element);
+                list.Add(new(StageRewardOutcomeKind.Rune, $"{element} 룬", RuneElement: element));
             }
             else
             {
-                var relic = relicPool[rng.Next(relicPool.Count)];
-                if (relics.Add(relic.Id))
-                    list.Add(new(StageRewardOutcomeKind.Relic, relic.Name, Relic: relic));
-                else if (relics.Count >= relicPool.Count)
-                    relicPool.Clear(); // 풀을 다 썼으면 남는 칸은 룬으로 채운다
+                var relic = PickWeighted(relicPool, rng);
+                relicPool.Remove(relic);
+                list.Add(new(StageRewardOutcomeKind.Relic, relic.Name, Relic: relic));
             }
         }
         return list;
+    }
+
+    /// <summary>RelicDef.Weight에 비례해 하나를 뽑는다(가중치가 낮은 유물은 드물게 나온다).</summary>
+    private static RelicDef PickWeighted(List<RelicDef> pool, Random rng)
+    {
+        double roll = rng.NextDouble() * pool.Sum(r => r.Weight);
+        foreach (var r in pool)
+        {
+            roll -= r.Weight;
+            if (roll < 0) return r;
+        }
+        return pool[^1];
     }
 
     private List<StageRewardCandidate> RevealStat(StageRewardOption option, Random rng)
