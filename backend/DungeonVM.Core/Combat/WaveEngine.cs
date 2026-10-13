@@ -34,12 +34,13 @@ public static class WaveEngine
         // 같이 나오지 않는다. 예전엔 일반 몹 mobCount마리를 무조건 먼저 채운 뒤 보스를 추가로 얹었는데,
         // 그러면 동시교전수(3) 전부가 일반 몹 focus-fire에 낭비되고 보스는 뒷전으로 밀리는 데다,
         // 전투가 훨씬 길어져 파티가 순차적으로 갈려나가는 원인이 되었다(스테15 승률 0% 원인으로 확인됨).
-        // 보스 공통 하향 배율 × (5·10·20·30스테 보스만 따로 곱하는 스테이지별 배율)
+        // 보스 공통 하향 배율 × (5·10·20·25·30스테 보스만 따로 곱하는 스테이지별 배율)
         double bossMult = config.BossNerfMultiplier * stage switch
         {
             5 => config.Stage5BossMultiplier,
             10 => config.Stage10BossMultiplier,
             20 => config.Stage20BossMultiplier,
+            25 => config.Stage25BossMultiplier,
             30 => config.Stage30BossMultiplier,
             _ => 1.0,
         };

@@ -27,6 +27,10 @@ public sealed class BotContext
     /// <summary>ShouldSaveFor 판단으로 재뽑기 등 할인 소비를 멈추고 저축하기로 한 횟수. 저축 로직 작동 확인용.</summary>
     public int SavingsHolds { get; private set; }
 
+    /// <summary>이번 스테이지(정비+전투)에서 무기 뽑기를 누른 횟수. 봇이 한 스테이지에 뽑기 상한을 두는 데 쓴다 —
+    /// 자판기 Lv.5에서는 뽑은 무기를 바로 파는 환급 기댓값이 뽑기 비용(10G)과 거의 같아서, 그리드가 가득 찰 때마다 정리하며 계속 뽑는 봇이 끝나지 않는다.</summary>
+    public int RollsThisStage { get; set; }
+
     public BotContext(StageLoop stageLoop, Random rng, MetaProgression meta)
     {
         StageLoop = stageLoop;

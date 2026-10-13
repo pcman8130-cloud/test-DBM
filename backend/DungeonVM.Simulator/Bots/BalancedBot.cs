@@ -57,6 +57,7 @@ public sealed class BalancedBot : IBot
 
     public void OnMaintenancePhase(BotContext ctx)
     {
+        ctx.RollsThisStage = 0;
         ctx.ApplyFreeActions();
         CullGrid(ctx);
 
@@ -138,6 +139,15 @@ public sealed class BalancedBot : IBot
             ctx.TryEquipFromGrid(character, w => !IsAlwaysSold(w.Type) && (committed is null || w.Type == committed) && (character.EquippedWeapon is null || w.Tier > character.EquippedWeapon.Tier));
             ctx.TryEquipArmorFromGrid(character);
         }
+
+        if (_profile.SocketRunes) SocketRunes(ctx);
+    }
+
+    /// <summary>보관함의 룬을 룬이 없는 무기에 꽂는다. 무기 티어가 높은 캐릭터부터(사람도 제일 키운 무기에 먼저 끼운다).</summary>
+    private static void SocketRunes(BotContext ctx)
+    {
+        foreach (var character in ctx.Party.Where(c => c.EquippedWeapon is not null).OrderByDescending(c => c.EquippedWeapon!.Tier))
+            ctx.TrySocketRuneOn(character);
     }
 
     /// <summary>파티 전원이 이미 무기 타입을 정했다면(맨몸 캐릭터가 없으면), 그 committed 타입들 외의
@@ -169,7 +179,7 @@ public sealed class BalancedBot : IBot
     /// <summary>골드가 있는 한 무기를 계속 뽑는다. 뽑을 때마다 합성하고 정리하며, MakeRoomWhenFull이면 가득 찼을 때 칸을 만들어 본다.</summary>
     private void RollWhilePossible(BotContext ctx)
     {
-        while (true)
+        while (ctx.RollsThisStage < MaxRollsPerStage)
         {
             if (ctx.Inventory.Grid.IsFull)
             {
@@ -181,10 +191,14 @@ public sealed class BalancedBot : IBot
                 }
             }
             if (!ctx.TryRollWeapon(UnwantedWeaponTypes(ctx))) return;
+            ctx.RollsThisStage++;
             ctx.ApplyFreeActions();
             CullGrid(ctx);
         }
     }
+
+    /// <summary>한 스테이지에서 뽑기를 누르는 상한(사람은 한 스테이지에 이렇게까지 누르지 않는다). 무한 뽑기-정리 순환을 막는 안전장치이기도 하다.</summary>
+    private const int MaxRollsPerStage = 150;
 
     /// <summary>가득 찬 그리드에서 합성 짝이 없고 파티 최저 무기 레벨 이하인(앞으로 쓸 일이 없는) 무기 중 가장 낮은 것을 판다.
     /// 지금 장착 중인 무기와 같은 종류·같은 레벨(전투 중 동종 강화 재료)은 건드리지 않는다.</summary>

@@ -5,6 +5,7 @@
     "skillBonusAtLevel5": 0.58,
     "skillBonusAtLevel10": 0.35,
     "skillBonusAtLevel15": 0.65,
+    "healthBonusAtLevel5": 15,
     "table": {
       "Sword":  { "row": "Front", "baseDamage": 12, "attacksPerSecond": 1.2, "bonusHealth": 20, "pullAggro": 0 },
       "Shield": { "row": "Front", "baseDamage": 5,  "attacksPerSecond": 0.8, "bonusHealth": 60, "pullAggro": 1.0 },
@@ -64,8 +65,9 @@
     "bossNerfMultiplier": 0.7,
     "stage5BossMultiplier": 1.12,
     "stage10BossMultiplier": 1.12,
-    "stage20BossMultiplier": 1.02,
-    "stage30BossMultiplier": 1.0,
+    "stage20BossMultiplier": 1.12,
+    "stage25BossMultiplier": 1.15,
+    "stage30BossMultiplier": 1.1,
     "stage30BossDamageMultiplier": 0.85
   },
   "metaProgression": {

@@ -1,3 +1,4 @@
+using DungeonVM.Core.Balance;
 using DungeonVM.Core.Enums;
 
 namespace DungeonVM.Core.Models;
@@ -23,7 +24,7 @@ public sealed class Weapon
     public RowPosition Row => WeaponCatalog.RowOf(Type);
     public double Damage => WeaponCatalog.DamageAtTier(Type, Tier);
     public double AttacksPerSecond => WeaponCatalog.Get(Type).AttacksPerSecond;
-    public double BonusHealth => WeaponCatalog.Get(Type).BonusHealth;
+    public double BonusHealth => WeaponCatalog.Get(Type).BonusHealth + (Tier >= 5 ? BalanceProvider.Current.Weapons.HealthBonusAtLevel5 : 0);
     public bool IsMaxTier => Tier >= WeaponCatalog.MaxTier;
 
     public bool CanMergeWith(Weapon other) => other.Type == Type && other.Tier == Tier && !IsMaxTier;

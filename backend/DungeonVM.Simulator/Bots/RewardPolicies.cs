@@ -36,6 +36,15 @@ public static class RewardPolicies
     public static int PartyFirstThenStat(BotContext ctx, StageRewardChoice choice)
         => ctx.Party.Count >= 4 ? Stat(ctx, choice) : Equipment(ctx, choice);
 
+    /// <summary>룬이 아직 없는 무기가 있고 보관함의 룬으로도 다 못 채우면 특수 상자(룬/유물)를 열고, 아니면 PartyFirstThenStat.
+    /// 사람은 룬이 비어 있는 무기가 있으면 그걸 채우려고 특수 상자를 한 번쯤 연다.</summary>
+    public static int RuneHungry(BotContext ctx, StageRewardChoice choice)
+    {
+        int bare = ctx.Party.Count(c => c.EquippedWeapon is { } w && w.Element == ElementType.None);
+        if (ctx.Party.Count >= 4 && bare > ctx.Inventory.RuneStorage.Count) return Special(ctx, choice);
+        return PartyFirstThenStat(ctx, choice);
+    }
+
     /// <summary>보스 직전 스테이지에서만 특수 상자(룬/유물)를 열고, 그 외에는 fallback 정책을 따른다.</summary>
     public static RewardPolicy SpecialBeforeBoss(RewardPolicy fallback)
         => (ctx, choice) => NextStageIsBoss(ctx) ? Special(ctx, choice) : fallback(ctx, choice);
@@ -127,24 +136,27 @@ public sealed record PlanGoal(PlanGoalKind Kind, int Target, int GiveUpStage = i
 /// 합성 짝이 없는 CullMaxLevel 이하 무기를 그리드에서 팔아 칸과 골드를 확보한다(사람이 하는 정리).
 /// MakeRoomWhenFull이 켜져 있으면 그리드가 가득 찰 때 장착 중인 무기보다 낮은 레벨의 합성 짝 없는 무기를 팔아 칸을 만들고,
 /// 그래도 가득 차 있고 골드가 남으면 그리드를 확장한다(사람은 가득 차면 뽑기를 멈추지 않고 정리/확장한다).
+/// SocketRunes가 켜져 있으면 보관함의 룬을 아직 룬이 없는 무기에 꽂는다(무기가 높은 캐릭터부터. 사람은 룬을 얻으면 바로 끼운다).
 /// </summary>
 public sealed record BalancedBotProfile(
     string Name, int SaveStagesAhead, RewardPolicy Reward, IReadOnlyList<PlanGoal>? Plan = null,
     bool HoldGold = false, int OpeningWeapons = 0,
-    IReadOnlyList<WeaponType>? AlwaysSell = null, int CullVendLevel = 0, int CullMaxLevel = 0, bool MakeRoomWhenFull = false)
+    IReadOnlyList<WeaponType>? AlwaysSell = null, int CullVendLevel = 0, int CullMaxLevel = 0, bool MakeRoomWhenFull = false, bool SocketRunes = false)
 {
-    /// <summary>밸런스 평가기가 기준으로 쓰는 기본 성향(기존 BalancedBot 그대로).</summary>
-    public static BalancedBotProfile Default { get; } = new("Balanced", 3, RewardPolicies.PartyFirstThenStat);
+    /// <summary>밸런스 평가기가 기준으로 쓰는 "평균적인 사람" 성향. 인원을 먼저 채우고 번 돈은 곧 쓰며(최대 3스테이지 수입 안에 모일 목표만 저축),
+    /// 상자는 능력치 상자 위주지만 룬이 비어 있는 무기가 있으면 특수 상자를 열어 룬을 얻고 바로 무기에 꽂는다.
+    /// 그리드가 가득 차면 못 쓰는 무기를 팔거나 보관함을 늘린다. 예전에는 특수 상자를 한 번도 안 열고 룬도 안 써서 사람보다 약했다.</summary>
+    public static BalancedBotProfile Default { get; } = new("Balanced", 3, RewardPolicies.RuneHungry, MakeRoomWhenFull: true, SocketRunes: true);
 
     /// <summary>저축형: 목표 금액을 오래 모아서 한꺼번에 쓰고, 상자는 항상 장비 상자.</summary>
-    public static BalancedBotProfile Hoarder { get; } = new("Hoarder", 6, RewardPolicies.AlwaysEquipment);
+    public static BalancedBotProfile Hoarder { get; } = new("Hoarder", 6, RewardPolicies.AlwaysEquipment, SocketRunes: true);
 
     /// <summary>즉시 강화형: 길게 모으지 않고(1스테이지 수입 안에 모일 때만 잠깐 저축) 번 돈을 바로 재뽑기/강화에 쓰고, 상자는 능력치 상자 위주로 열며
     /// 보스 직전 스테이지에서만 특수 상자를 연다(장비는 이미 바로바로 맞추고 있어서 장비 상자는 굳이).</summary>
-    public static BalancedBotProfile Spender { get; } = new("Spender", 1, RewardPolicies.SpecialBeforeBoss(RewardPolicies.Stat));
+    public static BalancedBotProfile Spender { get; } = new("Spender", 1, RewardPolicies.SpecialBeforeBoss(RewardPolicies.Stat), SocketRunes: true);
 
     /// <summary>보스 대비형: 기본 균형 운영에, 보스 직전 스테이지에서는 특수 상자(룬/유물)로 갈아탄다.</summary>
-    public static BalancedBotProfile BossPrep { get; } = new("BossPrep", 3, RewardPolicies.SpecialBeforeBoss(RewardPolicies.PartyFirstThenStat));
+    public static BalancedBotProfile BossPrep { get; } = new("BossPrep", 3, RewardPolicies.SpecialBeforeBoss(RewardPolicies.PartyFirstThenStat), SocketRunes: true);
 
     /// <summary>숙련자 봇(개발자 본인 플레이 루트): 첫 골드로 무기 3개·방어구 2개를 뽑아 장착하고, 상자는 항상 능력치 상자를 고르며,
     /// 골드는 목표를 다 모을 때까지 재뽑기 없이 모은다. 구매 순서: 인원 3명(5스테이지 전) → 자판기 Lv.3(9스테이지쯤) →

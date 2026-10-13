@@ -508,6 +508,7 @@
   };
   var WEAPON_TYPES = Object.keys(WEAPONS);
   var LEVEL_MULT = [1.00,1.35,1.75,2.15,2.55,2.95,3.35,3.75,4.15,4.60,5.30,6.10,7.10,8.30,10.00];
+  var LEVEL5_HP_BONUS = 15; // Lv.5 이상 무기를 든 캐릭터의 추가 체력(백엔드 weapons.healthBonusAtLevel5)
   var SKILL_FLAT_BONUS = [0, 0.58, 0.93, 1.58]; // 스킬 티어(0~3)별 누적 전투력 보너스 (백엔드 WeaponCatalog.SkillBonusAt와 동기화)
 
   // 기획서 4.3절 무기별 Lv.5/10/15 스킬 마일스톤 — 실제 전투 효과로 구현
@@ -1136,7 +1137,7 @@
   function computeCharStats(c){
     var w = c.weapon, a = c.armor, m = M();
     var phys = !!(w && isPhysicalType(w.type)), magic = !!(w && isMagicType(w.type));
-    var baseHp = 90 + (w?WEAPONS[w.type].hp:0) + (a?a.hp:0);
+    var baseHp = 90 + (w?WEAPONS[w.type].hp + (w.level>=5 ? LEVEL5_HP_BONUS : 0):0) + (a?a.hp:0);
     var newMaxHp = Math.round((Math.round(baseHp) + state.teamHpFlat + m.hpFlat) * (1 + m.hpPct));
     c.maxHp = newMaxHp;
     if(c.hp>c.maxHp) c.hp = c.maxHp;
@@ -1181,9 +1182,9 @@
   // 5/10/15/20/25/30스테는 전체 보스 곡선(특히 11/21스테 난이도 게이트 이후)이 과했다는
   // 플레이테스트 피드백으로 전부 30% 하향.
   // 5·10스테이지 보스만 따로 조정하는 배율(백엔드 wave.stage5BossMultiplier / stage10BossMultiplier와 동일, 기본 1.0).
-  var STAGE5_BOSS_MULT = 1.12, STAGE10_BOSS_MULT = 1.12, STAGE20_BOSS_MULT = 1.02, STAGE30_BOSS_MULT = 1.0;
+  var STAGE5_BOSS_MULT = 1.12, STAGE10_BOSS_MULT = 1.12, STAGE20_BOSS_MULT = 1.12, STAGE25_BOSS_MULT = 1.15, STAGE30_BOSS_MULT = 1.1;
   var STAGE30_BOSS_DMG_MULT = 0.85; // 30스테이지 보스 공격력에만 추가로 곱함(체력 무관, 백엔드 wave.stage30BossDamageMultiplier)
-  var BOSS_STAGE_OVERRIDES = { 5: 0.7*STAGE5_BOSS_MULT, 10: 0.7*STAGE10_BOSS_MULT, 15: 0.7, 20: 0.7*STAGE20_BOSS_MULT, 25: 0.7, 30: 0.7*STAGE30_BOSS_MULT };
+  var BOSS_STAGE_OVERRIDES = { 5: 0.7*STAGE5_BOSS_MULT, 10: 0.7*STAGE10_BOSS_MULT, 15: 0.7, 20: 0.7*STAGE20_BOSS_MULT, 25: 0.7*STAGE25_BOSS_MULT, 30: 0.7*STAGE30_BOSS_MULT };
   function bossStageMult(stage){ return BOSS_STAGE_OVERRIDES[stage] || 1; }
   function makeWave(stage){
     var scale = scaleAt(stage);

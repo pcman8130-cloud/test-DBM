@@ -44,6 +44,9 @@ public sealed class WeaponBalanceSection
     public double SkillBonusAtLevel10 { get; set; }
     public double SkillBonusAtLevel15 { get; set; }
 
+    /// <summary>Lv.5 이상 무기를 장착한 캐릭터가 추가로 얻는 체력(고정값, 무기 기본 체력 보너스에 더해짐). 스킬 보너스와 달리 레벨이 더 올라도 늘지 않는다.</summary>
+    public double HealthBonusAtLevel5 { get; set; }
+
     public Dictionary<string, WeaponStatEntry> Table { get; set; } = new();
 }
 
@@ -113,12 +116,13 @@ public sealed class WaveBalanceSection
     /// 위 난이도 게이트 도입 후 보스가 과하게 강해졌다는 플레이테스트 피드백으로 추가됨(기본 1.0 = 하향 없음).</summary>
     public double BossNerfMultiplier { get; set; } = 1.0;
 
-    /// <summary>특정 보스 스테이지(5·10·20·30)만 따로 조정하는 체력·공격력 배율. 중간보스·대형보스 수치(MidBoss*/BigBoss*)는
+    /// <summary>특정 보스 스테이지(5·10·20·25·30)만 따로 조정하는 체력·공격력 배율. 중간보스·대형보스 수치(MidBoss*/BigBoss*)는
     /// 5·15·25스테, 10·20·30스테가 공유해서 한 스테이지 난이도를 맞추면 같은 종류의 다른 보스까지 같이 움직였다 — 이 배율은 해당
-    /// 스테이지 보스에만 곱해져 서로 분리해서 조정할 수 있게 한다(기본 1.0 = 영향 없음). 15·25스테는 공유 수치(MidBoss*)로 조정한다.</summary>
+    /// 스테이지 보스에만 곱해져 서로 분리해서 조정할 수 있게 한다(기본 1.0 = 영향 없음). 15스테는 공유 수치(MidBoss*)로 조정한다.</summary>
     public double Stage5BossMultiplier { get; set; } = 1.0;
     public double Stage10BossMultiplier { get; set; } = 1.0;
     public double Stage20BossMultiplier { get; set; } = 1.0;
+    public double Stage25BossMultiplier { get; set; } = 1.0;
     public double Stage30BossMultiplier { get; set; } = 1.0;
     /// <summary>30스테이지 최종보스의 공격력에만 추가로 곱하는 배율(체력은 그대로). 파티가 한 방에 쓰러지는 느낌만 줄이고 싶을 때 쓴다(기본 1.0).</summary>
     public double Stage30BossDamageMultiplier { get; set; } = 1.0;
