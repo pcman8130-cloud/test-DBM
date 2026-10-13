@@ -21,6 +21,7 @@ public sealed class RelicMods
     public double DamageTakenPct;           // 받는 피해 +%(음수 = 감소)
     public double BossDamageTakenPct;       // 보스에게 받는 피해 +%
     public double AoeDamageTakenPct;        // 적의 범위 공격 피해 +%
+    public double DamageReductionFlat;      // 받는 피해 고정 감소(공격 1회당)
     public double MaxHealthFlat;            // 최대 체력 + (고정)
     public double MaxHealthPct;             // 최대 체력 +%
     public double Dodge;                    // 회피율 +
@@ -53,7 +54,7 @@ public sealed class RelicMods
         AttackPct += o.AttackPct; AttackSpeedPct += o.AttackSpeedPct;
         PhysicalAttackPct += o.PhysicalAttackPct; PhysicalAttackSpeedPct += o.PhysicalAttackSpeedPct;
         MagicAttackPct += o.MagicAttackPct; BossDamagePct += o.BossDamagePct;
-        DamageTakenPct += o.DamageTakenPct; BossDamageTakenPct += o.BossDamageTakenPct; AoeDamageTakenPct += o.AoeDamageTakenPct;
+        DamageReductionFlat += o.DamageReductionFlat; DamageTakenPct += o.DamageTakenPct; BossDamageTakenPct += o.BossDamageTakenPct; AoeDamageTakenPct += o.AoeDamageTakenPct;
         MaxHealthFlat += o.MaxHealthFlat; MaxHealthPct += o.MaxHealthPct; Dodge += o.Dodge;
         StartShield += o.StartShield; RegenPerSecond += o.RegenPerSecond; HealOnAttack += o.HealOnAttack;
         GoldGainPct += o.GoldGainPct; GoldPerKill += o.GoldPerKill; FreeRollChance += o.FreeRollChance;

@@ -252,9 +252,9 @@ public sealed class StageRewardChoiceBalanceSection
     public double BossHealthBoostPerStage { get; set; }
 
     /// <summary>유틸 결과의 기본값(일반 스테이지 기준). 회피율/공격속도/쿨타임 감소 모두 비율(0.05 = 5%p/+5%/-5%).</summary>
-    public double UtilityDodgeBoost { get; set; } = 0.02;
-    public double UtilityAttackSpeedBoost { get; set; } = 0.04;
-    public double UtilityCooldownReduction { get; set; } = 0.05;
+    public double UtilityDodgeBoost { get; set; } = 0.012;
+    public double UtilityAttackSpeedBoost { get; set; } = 0.024;
+    public double UtilityCooldownReduction { get; set; } = 0.03;
     /// <summary>중간보스/보스 스테이지의 유틸 수치 배율.</summary>
     public double MidBossUtilityScale { get; set; } = 1.5;
     public double BossUtilityScale { get; set; } = 2.0;

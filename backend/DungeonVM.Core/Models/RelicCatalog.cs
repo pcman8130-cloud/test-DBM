@@ -15,9 +15,9 @@ public static class RelicCatalog
     public static readonly IReadOnlyList<RelicDef> All = new List<RelicDef>
     {
         // ── 5스테이지 ──
-        Boss(5, "goblin_wallet", "탐욕의 고블린 지갑", "모든 골드 획득량 +25%, 받는 피해 +5%", new() { GoldGainPct = 0.25, DamageTakenPct = 0.05 }),
+        Boss(5, "goblin_wallet", "탐욕의 고블린 지갑", "모든 골드 획득량 +25%, 받는 피해 +10%", new() { GoldGainPct = 0.25, DamageTakenPct = 0.10 }),
         Boss(5, "command_flag", "전투 지휘 깃발", "공격력 +10%, 공격속도 +10%", new() { AttackPct = 0.10, AttackSpeedPct = 0.10 }),
-        Boss(5, "chief_epaulette", "족장의 견장", "받는 피해 -5%", new() { DamageTakenPct = -0.05 }),
+        Boss(5, "chief_epaulette", "족장의 견장", "받는 피해 5 감소(공격 1회당 고정값)", new() { DamageReductionFlat = 5 }),
 
         // ── 10스테이지 ──
         Boss(10, "gauntlet", "괴력의 건틀렛", "물리 무기(활·단검·검·방패) 공격력 +30%, 공격속도 -10%", new() { PhysicalAttackPct = 0.30, PhysicalAttackSpeedPct = -0.10 }),

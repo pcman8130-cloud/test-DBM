@@ -249,13 +249,15 @@ public sealed class BattleField
         }
     }
 
-    /// <summary>받는 피해 보정: 용병단의 방패·족장의 견장(받는 피해), 원정대의 뱃지(보스에게 받는 피해), 고대의 수호자(범위 공격 피해).</summary>
+    /// <summary>받는 피해 보정: 용병단의 방패(받는 피해 %), 원정대의 뱃지(보스에게 받는 피해 %), 고대의 수호자(범위 공격 피해 %)를 곱한 뒤
+    /// 족장의 견장(공격 1회당 고정 감소)을 뺀다. 아무리 줄어도 원래 피해의 10%(최소 1)는 들어온다.</summary>
     private double MitigateIncomingDamage(double rawDamage, bool fromBoss, bool aoe)
     {
         var mods = _stageLoop.Mods;
         double mult = 1 + mods.DamageTakenPct + (fromBoss ? mods.BossDamageTakenPct : 0);
         if (aoe) mult *= 1 + mods.AoeDamageTakenPct;
-        return rawDamage * Math.Max(0.1, mult);
+        double afterPct = rawDamage * Math.Max(0.1, mult);
+        return Math.Max(Math.Max(1.0, rawDamage * 0.1), afterPct - mods.DamageReductionFlat);
     }
 
     private double EffectiveAttacksPerSecond(Monster m)

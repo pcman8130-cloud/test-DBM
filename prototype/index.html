@@ -538,9 +538,9 @@
   //  - 능력치 상자: 후보 = 공격력%(현재 공격력의 %) / 체력(고정값) / 회피율 / 공격속도 / 쿨타임 감소 중 서로 다른 3개.
   //    공격력/체력은 `기본 + PerStage × 클리어한 스테이지`.
   var REWARD_CONFIG = {
-    normal:{ atkPct:0.03, atkPctPerStage:0.0015, hp:10, hpPerStage:0.4, runeChance:0.5, utilScale:1,   gold:18,  goldPerStage:0.75 },
-    mid:   { atkPct:0.06, atkPctPerStage:0.002, hp:20, hpPerStage:0.75, runeChance:0.5, utilScale:1.5, gold:40,  goldPerStage:1.5 },
-    boss:  { atkPct:0.10, atkPctPerStage:0.0036, hp:35, hpPerStage:1,   runeChance:0.5, utilScale:2,   gold:75,  goldPerStage:2.5 }
+    normal:{ atkPct:0.018, atkPctPerStage:0.0009, hp:6, hpPerStage:0.25, runeChance:0.5, utilScale:1,   gold:18,  goldPerStage:0.75 },
+    mid:   { atkPct:0.036, atkPctPerStage:0.0012, hp:12, hpPerStage:0.45, runeChance:0.5, utilScale:1.5, gold:40,  goldPerStage:1.5 },
+    boss:  { atkPct:0.06, atkPctPerStage:0.0022, hp:21, hpPerStage:0.6,   runeChance:0.5, utilScale:2,   gold:75,  goldPerStage:2.5 }
   };
   var EQUIP_BOX = { weaponChance:0.5 };
   var REGULAR_LOWEST_LEVEL_CHANCE = 0.5;
@@ -556,7 +556,7 @@
     for(var i=0;i<EQUIP_BANDS.length;i++){ if(EQUIP_BANDS[i].bossStage>=stage) return EQUIP_BANDS[i]; }
     return EQUIP_BANDS[EQUIP_BANDS.length-1];
   }
-  var STAT_UTILITY = { dodge:0.02, aspd:0.04, cdr:0.05 }; // 일반 스테이지 기준(중간보스/보스는 utilScale 배)
+  var STAT_UTILITY = { dodge:0.012, aspd:0.024, cdr:0.03 }; // 일반 스테이지 기준(중간보스/보스는 utilScale 배)
 
   var VEND_UPGRADE_COSTS = [150, 350, 700, 1300];
   var MAX_VEND_LEVEL = 5;
@@ -641,9 +641,9 @@
      mods = 보유 유물을 합산하는 효과 수치(퍼센트 0.1 = 10%, 음수는 감소). M()이 합계를 돌려준다. */
   var RELIC_DEFS = {
     // 5스테이지
-    goblin_wallet:   { icon:'👛', name:'탐욕의 고블린 지갑', desc:'모든 골드 획득량 +25%, 받는 피해 +5%', kind:'boss', unlock:5, mods:{ goldGainPct:0.25, damageTakenPct:0.05 } },
+    goblin_wallet:   { icon:'👛', name:'탐욕의 고블린 지갑', desc:'모든 골드 획득량 +25%, 받는 피해 +10%', kind:'boss', unlock:5, mods:{ goldGainPct:0.25, damageTakenPct:0.10 } },
     command_flag:    { icon:'🚩', name:'전투 지휘 깃발', desc:'공격력 +10%, 공격속도 +10%', kind:'boss', unlock:5, mods:{ attackPct:0.10, aspdPct:0.10 } },
-    chief_epaulette: { icon:'🎖️', name:'족장의 견장', desc:'받는 피해 -5%', kind:'boss', unlock:5, mods:{ damageTakenPct:-0.05 } },
+    chief_epaulette: { icon:'🎖️', name:'족장의 견장', desc:'받는 피해 5 감소(공격 1회당 고정값)', kind:'boss', unlock:5, mods:{ damageReduction:5 } },
     // 10스테이지
     gauntlet:        { icon:'🥊', name:'괴력의 건틀렛', desc:'물리 무기(활·단검·검·방패) 공격력 +30%, 공격속도 -10%', kind:'boss', unlock:10, mods:{ physAttackPct:0.30, physAspdPct:-0.10 } },
     orc_shaman:      { icon:'🪄', name:'오크 주술사의 축복', desc:'성서가 기본공격 대신 공격력만큼 가장 체력이 낮은 아군을 치유', kind:'boss', unlock:10, mods:{ bibleHealer:true } },
@@ -799,7 +799,7 @@
 
   // 보유 유물(보스 + 일반)의 효과 합계. 유물이 바뀔 때만 invalidateMods()로 다시 계산한다.
   var MOD_KEYS = ['attackPct','aspdPct','physAttackPct','physAspdPct','magicAttackPct','bossDamagePct','damageTakenPct','bossDamageTakenPct',
-    'aoeDamageTakenPct','hpFlat','hpPct','dodge','startShield','regen','healOnAttack','goldGainPct','goldPerKill','freeRoll','cdr','magicCdr',
+    'aoeDamageTakenPct','damageReduction','hpFlat','hpPct','dodge','startShield','regen','healOnAttack','goldGainPct','goldPerKill','freeRoll','cdr','magicCdr',
     'skillAmp','skillDamage','meleeAoeChance','meleeAoeRatio','extraAttackChance'];
   var modsCache = null;
   function invalidateMods(){ modsCache = null; }
@@ -1356,7 +1356,9 @@
     var mm = M();
     var mult = 1 + mm.damageTakenPct + (fromBoss ? mm.bossDamageTakenPct : 0);
     if(aoe) mult *= (1 + mm.aoeDamageTakenPct);
-    return raw*Math.max(0.1, mult);
+    var afterPct = raw*Math.max(0.1, mult);
+    // 족장의 견장: 공격 1회당 고정 감소(아무리 줄어도 원래 피해의 10%, 최소 1은 들어온다)
+    return Math.max(Math.max(1, raw*0.1), afterPct - mm.damageReduction);
   }
   // 보호막(그을린 고목 방패)이 먼저 피해를 흡수한다.
   function damageChar(target, dmg){
