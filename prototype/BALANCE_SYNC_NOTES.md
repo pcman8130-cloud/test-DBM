@@ -215,3 +215,17 @@ Unity(`Assets/DungeonVending/`)의 웹 규칙 구현을 이 프로토타입(= BA
 ### 21스테이지 난이도 게이트 완화 (v0.10)
 두 번째 게이트(21스테~)만 ×2.3 → **×1.9**(첫 게이트 ×2.3 유지). 백엔드 `wave.difficultyGate2Multiplier`(0 이하이면 `difficultyGateMultiplier`와 같음), 프로토타입 `DIFFICULTY_GATES[1].mult`, Unity `gate2Multiplier`.
 게이트 완화로 쉬워지는 25·30스테 보스는 배율을 1.15 → 1.4, 1.1 → 1.4로 올려 난이도를 유지(`stage25BossMultiplier`, `stage30BossMultiplier`).
+
+### 난이도 "보통" 기준 재조정 (v0.11)
+시뮬레이터가 영혼 업그레이드를 최대로 찍고 있었는데 HTML·Unity에는 영혼 시스템이 없어 측정이 실제보다 쉬웠다. 시뮬레이터 기본을 영혼 없음으로 바꾸고(`--with-meta`로 켬) 그 기준으로 난이도를 다시 맞췄다.
+- 전체 적 배율 신설: 백엔드 `wave.enemyScaleMultiplier`(0.85, 모든 적 체력·공격), 프로토타입 `ENEMY_SCALE`(`scaleAt` 끝에 곱함), Unity `enemyScale`(`WebScale` 끝에 곱함, 0이면 1.0).
+- 보스 배율: 10스테 1.04 / 20스테 1.2 / 25스테 1.5 / 30스테 1.43 (5·15스테 그대로). 백엔드 `wave.stage*BossMultiplier` · 프로토타입 `STAGE*_BOSS_MULT` · Unity `stage*BossMultiplier`/`.asset`.
+- 평가 목표(`BalanceTargets.json`)의 숙련자 도달 구간을 0.65~0.85로 낮췄다.
+- 검증: 시뮬레이터 점수 0.141, Unity 컴파일 오류 0, 웹 오라클 비교 1501건 전부 통과.
+- 다양한 플레이어 봇: `BotCatalog`에 RandomBoxes/RandomAll/StatOnly/SpecialOnly/Newbie 추가, `BalanceEvaluator.EvaluateCasualPlayers` + `BalanceTargets.json`의 `casualPlayers`. LLM 튜너 프롬프트에도 설명을 넣었다. 균형형 대비 평균 클리어: RandomBoxes 0.64 / RandomAll 0.70 / StatOnly 0.46 / SpecialOnly 0.65 / Newbie 0.90.
+- 봇이 어떻게 성장했는지 보려면 `--compare-bots Balanced,StatOnly,... [런 수] --seed N --skip-llm`(`Evaluation/BotComparison.cs`): 스테이지 시작 시점의 인원·무기 레벨·방어구·HP·공격력·자판기 레벨을 봇별로 비교한다. (런 수는 숫자만 쓴다 — `--runs` 옵션은 없다.)
+
+### 보스 완화 · 플레이어 집단 봇 (v0.12)
+- 보스 배율: 5스테 1.0 / 10스테 0.95 / 20스테 1.12 / 25스테 1.45 / 30스테 1.4 (백엔드 `wave.stage*BossMultiplier` · 프로토타입 `STAGE*_BOSS_MULT` · Unity `stage*BossMultiplier`/`.asset`). 검증: 시뮬레이터, Unity 컴파일 오류 0, 웹 오라클 1501건 통과.
+- `PopulationBot`(`Bots/PopulationBot.cs`): 런마다 유형(초보/보통/숙련, 비율은 `BalanceTargets.json`의 `population.archetypeWeights`)과 습관(저축 성향, 상자 선택 정책, 실수 확률, 정리/룬 장착 여부)을 뽑는다. 평가기 "플레이어 집단"(`population.*`) 지표로 튜닝에 반영되고, `--compare-bots Population`으로 보스별 승률/누적 도달률을 볼 수 있다.
+- 비교 스크립트(임시): 보스 배율별 Population 결과를 훑을 때 `--balance <json>`으로 wave 값을 덮어쓰고 `--compare-bots Population`을 병렬로 돌렸다.

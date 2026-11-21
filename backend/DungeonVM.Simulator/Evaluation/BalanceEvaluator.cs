@@ -54,6 +54,8 @@ public static class BalanceEvaluator
         EvaluateGrowth(targets, measured, results);
         EvaluatePlaystyles(targets, measured, runs, seed, results);
         EvaluateSkillTiers(targets, runs, seed, results);
+        EvaluateCasualPlayers(targets, measured, runs, seed, results);
+        EvaluatePopulation(targets, runs, seed, results);
         if (!skipRelics)
             EvaluateRelicBalance(targets, relicRuns, seed, results);
 
@@ -265,6 +267,77 @@ public static class BalanceEvaluator
         }
     }
 
+    /// <summary>다양한 플레이어 지표. 상자를 무작위로 고르거나(RandomBoxes/RandomAll), 한 종류 상자만 고르거나(StatOnly/SpecialOnly),
+    /// 정리·룬 장착을 안 하는 초보(Newbie)처럼 "최적이 아닌" 사람들이 균형형 봇 대비 어디까지 가는지 본다.
+    /// (1) casualStageRatio: 해당 봇 평균 클리어 스테이지 ÷ 균형형 봇 값 — 너무 낮으면 선택을 잘못했을 때 벌이 크다(하한),
+    /// 너무 높으면 선택이 의미 없다(상한). (2) casualClearRate: 30스테 완주율 상한 — 아무렇게나 해서 깨면 안 된다.</summary>
+    private static void EvaluateCasualPlayers(JsonElement targets, Baseline primary, int runs, int seed, List<MetricResult> results)
+    {
+        if (!targets.TryGetProperty("casualPlayers", out var t) || !t.TryGetProperty("bots", out var botsEl)) return;
+
+        var names = botsEl.EnumerateArray().Select(e => e.GetString() ?? "").Where(n => n.Length > 0 && n != "Balanced").Distinct().ToList();
+        var measured = new ConcurrentDictionary<string, StyleStat>();
+        Parallel.ForEach(names, name => measured[name] = MeasureStyle(BotCatalog.Create(name), runs, seed));
+
+        double baseAvg = primary.TotalStagesCleared / (double)Math.Max(primary.Runs, 1);
+        double? minRatio = Num(t, "minStageRatio"), maxRatio = Num(t, "maxStageRatio"), maxClear = Num(t, "maxClearRate");
+        const string group = "다양한 플레이어";
+
+        foreach (var name in names)
+        {
+            var st = measured[name];
+            string detail = $"평균 {st.AvgStagesCleared:F1}스테 (균형형 {baseAvg:F1})";
+            if (minRatio is not null || maxRatio is not null)
+                results.Add(Judge(group, $"casualStageRatio.{name}", baseAvg <= 0 ? null : st.AvgStagesCleared / baseAvg, minRatio, maxRatio, st.Runs, 1, detail, false));
+            if (maxClear is not null)
+                results.Add(Judge(group, $"casualClearRate.{name}", st.Clears / (double)st.Runs, null, maxClear, st.Runs, 1, $"{st.Clears}/{st.Runs}", false));
+        }
+    }
+
+    /// <summary>플레이어 집단 지표. 런마다 플레이어(초보/보통/숙련)와 그 습관을 확률적으로 뽑는 PopulationBot으로 재서,
+    /// 고정된 몇 개 봇이 아니라 "여러 종류의 사람이 섞였을 때" 난이도가 어떤지 본다.
+    /// 전체 완주율·평균 클리어·10/20스테 도달률 + 숙련/초보 평균 클리어 비율(skillGap: 실력이 의미 있되 초보도 진행할 수 있는가).</summary>
+    private static void EvaluatePopulation(JsonElement targets, int runs, int seed, List<MetricResult> results)
+    {
+        if (!targets.TryGetProperty("population", out var t) || t.ValueKind != JsonValueKind.Object) return;
+        if (t.TryGetProperty("archetypeWeights", out var w))
+            PopulationBot.SetWeights(Num(w, "novice") ?? 0.30, Num(w, "casual") ?? 0.45, Num(w, "skilled") ?? 0.25);
+
+        var bot = new PopulationBot();
+        var rng = new Random(seed);
+        var meta = new MetaProgression();
+        var weapons = new WeaponTierMetrics();
+        var attempts = new StageAttemptCollector();
+        var byType = new Dictionary<Archetype, List<int>> { [Archetype.Novice] = new(), [Archetype.Casual] = new(), [Archetype.Skilled] = new() };
+        int clears = 0, reach10 = 0, reach20 = 0;
+        var all = new List<int>();
+
+        for (int i = 0; i < runs; i++)
+        {
+            var r = Program.SimulateOneRun(bot, i, rng, meta, weapons, attempts);
+            if (r.Outcome == RunEndReason.Victory) clears++;
+            if (r.StagesCleared >= 10) reach10++;
+            if (r.StagesCleared >= 20) reach20++;
+            all.Add(r.StagesCleared);
+            byType[bot.LastArchetype].Add(r.StagesCleared);
+            Program.InvestMetaSouls(meta);
+        }
+
+        string Avg(Archetype a) => byType[a].Count == 0 ? "-" : $"{byType[a].Average():F1}";
+        string mix = $"초보 {Avg(Archetype.Novice)}스테({byType[Archetype.Novice].Count}명) / 보통 {Avg(Archetype.Casual)}({byType[Archetype.Casual].Count}) / 숙련 {Avg(Archetype.Skilled)}({byType[Archetype.Skilled].Count})";
+        const string group = "플레이어 집단";
+
+        results.Add(Judge(group, "population.runClearRate", clears / (double)runs, Num(t, "clearRateMin"), Num(t, "clearRateMax"), runs, 1, $"{clears}/{runs}", false));
+        results.Add(Judge(group, "population.avgStagesCleared", all.Average(), Num(t, "avgStagesMin"), Num(t, "avgStagesMax"), runs, 1, mix, false));
+        results.Add(Judge(group, "population.reach10", reach10 / (double)runs, Num(t, "reach10Min"), Num(t, "reach10Max"), runs, 1, "10스테 이상 클리어한 비율", false));
+        results.Add(Judge(group, "population.reach20", reach20 / (double)runs, Num(t, "reach20Min"), Num(t, "reach20Max"), runs, 1, "20스테 이상 클리어한 비율", false));
+
+        var nov = byType[Archetype.Novice];
+        var skl = byType[Archetype.Skilled];
+        double? gap = nov.Count >= 20 && skl.Count >= 20 && nov.Average() > 0 ? skl.Average() / nov.Average() : null;
+        results.Add(Judge(group, "population.skillGap", gap, Num(t, "skillGapMin"), Num(t, "skillGapMax"), Math.Min(nov.Count, skl.Count), 20, "숙련 평균 클리어 ÷ 초보 평균 클리어", false));
+    }
+
     /// <summary>실력 단계별 목표. 위의 스테이지 승률 목표는 "평균 플레이어"(Balanced 봇) 기준이고, 여기서는 "숙련자"(Expert 봇)가
     /// 후반을 얼마나 깨는지를 따로 본다: 29스테이지까지 도달하는 비율(reachStage)과 마지막 스테이지(finalStage)의 조건부 승률.
     /// 한쪽 실력에 난이도를 맞추면 다른 쪽이 너무 쉬워지거나 어려워지는 문제를 막기 위한 장치다.</summary>
@@ -404,6 +477,8 @@ public static class BalanceEvaluator
         bool pct = metric.StartsWith("stageWinRate", StringComparison.Ordinal)
             || metric.StartsWith("weaponTypeShare", StringComparison.Ordinal)
             || metric.StartsWith("styleClearRate", StringComparison.Ordinal)
+            || metric.StartsWith("casualClearRate", StringComparison.Ordinal)
+            || metric is "population.runClearRate" or "population.reach10" or "population.reach20"
             || metric.StartsWith("tier.", StringComparison.Ordinal)
             || metric == "runClearRate";
         return pct ? $"{v:P1}" : $"{v:F2}";

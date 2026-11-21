@@ -47,6 +47,9 @@ internal static class Program
                 parsed.RunsPerBot, parsed.Iterations, parsed.MaxChanges, parsed.MockLlm, parsed.Seed, parsed.TargetsPath, parsed.TuneOutDir));
         }
 
+        if (parsed.CompareBots is not null)
+            return Evaluation.BotComparison.Run(parsed.CompareBots.Split(',', StringSplitOptions.RemoveEmptyEntries), parsed.RunsPerBot, parsed.Seed);
+
         if (parsed.RelicReport)
             return Evaluation.RelicReport.Run(parsed.RunsPerBot, parsed.Seed, parsed.BotName, parsed.EvalOutPath, parsed.RelicStage, parsed.SplitWeapon);
 
@@ -128,7 +131,7 @@ internal static class Program
         bool Evaluate = false, string? TargetsPath = null, string? EvalOutPath = null,
         int RelicRuns = 2000, bool SkipRelics = false, int Seed = 12345,
         bool Tune = false, int Iterations = 3, int MaxChanges = 4, bool MockLlm = false, string? TuneOutDir = null,
-        bool RelicReport = false, string BotName = "Balanced", int RelicStage = 0, string SplitWeapon = "Bible");
+        bool RelicReport = false, string BotName = "Balanced", int RelicStage = 0, string SplitWeapon = "Bible", string? CompareBots = null);
 
     /// <summary>
     /// "[숫자] [--balance &lt;path&gt;] [--summary &lt;path&gt;] [--progress &lt;path&gt;] [--skip-llm]" 형태를 파싱한다.
@@ -146,6 +149,7 @@ internal static class Program
         bool skipLlm = false;
         bool evaluate = false, skipRelics = false;
         bool tune = false, mockLlm = false, relicReport = false;
+        string? compareBots = null;
         string botName = "Balanced";
         int relicStage = 0;
         string splitWeapon = "Bible";
@@ -159,6 +163,13 @@ internal static class Program
             {
                 case "--evaluate":
                     evaluate = true;
+                    break;
+                case "--compare-bots":
+                    if (i + 1 >= args.Length) throw new ArgumentException("--compare-bots 옵션 뒤에는 봇 이름 목록(쉼표 구분)이 와야 합니다.");
+                    compareBots = args[++i];
+                    break;
+                case "--with-meta":
+                    UseMeta = true;
                     break;
                 case "--skip-relics":
                     skipRelics = true;
@@ -253,7 +264,7 @@ internal static class Program
         balancePath ??= Environment.GetEnvironmentVariable("DUNGEONVM_BALANCE_JSON");
         return new ParsedArgs(runsPerBot, balancePath, summaryPath, progressPath, skipLlm,
             evaluate, targetsPath, evalOutPath, relicRuns, skipRelics, seed,
-            tune, iterations, maxChanges, mockLlm, tuneOutDir, relicReport, botName, relicStage, splitWeapon);
+            tune, iterations, maxChanges, mockLlm, tuneOutDir, relicReport, botName, relicStage, splitWeapon, compareBots);
     }
 
     /// <summary>실행 도중 진행 상황을 파일에 덮어쓴다. 웹 UI가 이 파일을 주기적으로 폴링해서 진행률/실시간 지표를 보여준다.</summary>
@@ -404,8 +415,12 @@ internal static class Program
             stageLoop.Machine.AttackUpgradeLevel, stageLoop.Machine.DefenseUpgradeLevel);
     }
 
+    /// <summary>--with-meta: 런이 끝날 때마다 영혼을 투자한다(기본은 끔 — HTML·Unity 게임에는 영혼 시스템이 없다).</summary>
+    internal static bool UseMeta;
+
     internal static void InvestMetaSouls(MetaProgression meta)
     {
+        if (!UseMeta && Environment.GetEnvironmentVariable("DVM_WITH_META") != "1") return;
         bool progressed = true;
         while (progressed)
         {

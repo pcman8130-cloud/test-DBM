@@ -118,6 +118,9 @@ public sealed class WaveBalanceSection
     /// <summary>모든 중간보스·대형보스(5/10/15/20/25/30스테)의 체력·공격력에 곱해지는 하향 배율.
     /// 위 난이도 게이트 도입 후 보스가 과하게 강해졌다는 플레이테스트 피드백으로 추가됨(기본 1.0 = 하향 없음).</summary>
     public double BossNerfMultiplier { get; set; } = 1.0;
+    /// <summary>난이도 전체 배율: 모든 적(일반·중간보스·보스)의 체력과 공격력에 곱해진다. 1.0이 "어려움"이고 낮을수록 쉽다
+    /// (보통 = 0.85). 영혼 업그레이드가 없는 게임(HTML·Unity)에서 평균 플레이어가 겪는 난이도를 한 값으로 조정하려고 둔다.</summary>
+    public double EnemyScaleMultiplier { get; set; } = 1.0;
 
     /// <summary>특정 보스 스테이지(5·10·20·25·30)만 따로 조정하는 체력·공격력 배율. 중간보스·대형보스 수치(MidBoss*/BigBoss*)는
     /// 5·15·25스테, 10·20·30스테가 공유해서 한 스테이지 난이도를 맞추면 같은 종류의 다른 보스까지 같이 움직였다 — 이 배율은 해당

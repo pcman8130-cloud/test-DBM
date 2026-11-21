@@ -26,6 +26,9 @@ public static class RewardPolicies
     private static int Equipment(BotContext ctx, StageRewardChoice choice)
         => EquipmentFits(ctx) ? choice.IndexOf(StageRewardOptionType.EquipmentBox) : choice.IndexOf(StageRewardOptionType.StatBox);
 
+    /// <summary>상자를 매번 무작위로 고른다(장비만/능력치만/특수만 같은 고정 습관이 없는 플레이어).</summary>
+    public static int RandomBox(BotContext ctx, StageRewardChoice choice) => ctx.Rng.Next(choice.Options.Count);
+
     public static int Stat(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.StatBox);
     public static int Special(BotContext ctx, StageRewardChoice choice) => choice.IndexOf(StageRewardOptionType.SpecialBox);
 
@@ -141,12 +144,28 @@ public sealed record PlanGoal(PlanGoalKind Kind, int Target, int GiveUpStage = i
 public sealed record BalancedBotProfile(
     string Name, int SaveStagesAhead, RewardPolicy Reward, IReadOnlyList<PlanGoal>? Plan = null,
     bool HoldGold = false, int OpeningWeapons = 0,
-    IReadOnlyList<WeaponType>? AlwaysSell = null, int CullVendLevel = 0, int CullMaxLevel = 0, bool MakeRoomWhenFull = false, bool SocketRunes = false)
+    IReadOnlyList<WeaponType>? AlwaysSell = null, int CullVendLevel = 0, int CullMaxLevel = 0, bool MakeRoomWhenFull = false, bool SocketRunes = false,
+    bool RandomCandidates = false, bool RandomRelics = false)
 {
     /// <summary>밸런스 평가기가 기준으로 쓰는 "평균적인 사람" 성향. 인원을 먼저 채우고 번 돈은 곧 쓰며(최대 3스테이지 수입 안에 모일 목표만 저축),
     /// 상자는 능력치 상자 위주지만 룬이 비어 있는 무기가 있으면 특수 상자를 열어 룬을 얻고 바로 무기에 꽂는다.
     /// 그리드가 가득 차면 못 쓰는 무기를 팔거나 보관함을 늘린다. 예전에는 특수 상자를 한 번도 안 열고 룬도 안 써서 사람보다 약했다.</summary>
     public static BalancedBotProfile Default { get; } = new("Balanced", 3, RewardPolicies.RuneHungry, MakeRoomWhenFull: true, SocketRunes: true);
+
+    /// <summary>상자 선택·후보 선택이 매번 무작위인 플레이어(진단용). 나머지 경제 행동은 기본 성향과 같다.</summary>
+    public static BalancedBotProfile RandomBoxes { get; } = Default with { Name = "RandomBoxes", Reward = RewardPolicies.RandomBox, RandomCandidates = true };
+
+    /// <summary>RandomBoxes + 보스 유물도 무작위로 고르는 플레이어(가장 비관적인 기준선).</summary>
+    public static BalancedBotProfile RandomAll { get; } = RandomBoxes with { Name = "RandomAll", RandomRelics = true };
+
+    /// <summary>능력치 상자만 고르는 플레이어(고정 습관). 나머지는 기본 성향.</summary>
+    public static BalancedBotProfile StatOnly { get; } = Default with { Name = "StatOnly", Reward = RewardPolicies.Stat };
+
+    /// <summary>특수 상자(룬/유물)만 고르는 플레이어(고정 습관). 나머지는 기본 성향.</summary>
+    public static BalancedBotProfile SpecialOnly { get; } = Default with { Name = "SpecialOnly", Reward = RewardPolicies.Special };
+
+    /// <summary>초보: 상자·후보·유물을 모두 무작위로 고르고, 그리드가 꽉 차도 정리하지 않으며 룬도 안 꽂고 번 돈은 바로 쓴다.</summary>
+    public static BalancedBotProfile Newbie { get; } = RandomAll with { Name = "Newbie", SaveStagesAhead = 1, MakeRoomWhenFull = false, SocketRunes = false };
 
     /// <summary>저축형: 목표 금액을 오래 모아서 한꺼번에 쓰고, 상자는 항상 장비 상자.</summary>
     public static BalancedBotProfile Hoarder { get; } = new("Hoarder", 6, RewardPolicies.AlwaysEquipment, SocketRunes: true);

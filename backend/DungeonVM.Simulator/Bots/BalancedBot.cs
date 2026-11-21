@@ -443,7 +443,8 @@ public sealed class BalancedBot : IBot
     /// 능력치 상자를 고른다(보스전은 단일 대상 DPS 경쟁이라 누적 스탯이 중요하다는 기존 판단을 그대로 유지).</summary>
     public int ChooseStageReward(BotContext ctx, StageRewardChoice choice) => _profile.Reward(ctx, choice);
 
-    public int ChooseRewardCandidate(BotContext ctx, StageRewardReveal reveal) => RewardCandidatePolicies.Default(ctx, reveal, IsAlwaysSold);
+    public int ChooseRewardCandidate(BotContext ctx, StageRewardReveal reveal)
+        => _profile.RandomCandidates ? ctx.Rng.Next(reveal.Candidates.Count) : RewardCandidatePolicies.Default(ctx, reveal, IsAlwaysSold);
 
     /// <summary>보스 유물 선택 우선순위(스테이지마다 후보가 달라 한 목록으로 이어 붙였다). 새 유물 세트(공격/방어/특수)에서
     /// 무난하게 강한 쪽을 앞에 둔 것으로, 정밀한 실측 순위는 아니다 — 유물별 실제 격차는 평가기의 "유물 격차" 지표(relicBalance)로 본다.</summary>
@@ -463,6 +464,7 @@ public sealed class BalancedBot : IBot
 
     public int ChooseBossRelic(BotContext ctx, IReadOnlyList<BossRelic> candidates)
     {
+        if (_profile.RandomRelics) return ctx.Rng.Next(candidates.Count);
         foreach (var preferredId in RelicPreferenceOrder)
         {
             int idx = candidates.ToList().FindIndex(r => r.Id == preferredId);

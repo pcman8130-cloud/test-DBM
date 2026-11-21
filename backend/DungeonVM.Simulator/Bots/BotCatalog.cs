@@ -9,11 +9,17 @@ public static class BotCatalog
         "Hoarder" => new BalancedBot(BalancedBotProfile.Hoarder),
         "Spender" => new BalancedBot(BalancedBotProfile.Spender),
         "BossPrep" => new BalancedBot(BalancedBotProfile.BossPrep),
+        "RandomBoxes" => new BalancedBot(BalancedBotProfile.RandomBoxes),
+        "RandomAll" => new BalancedBot(BalancedBotProfile.RandomAll),
+        "StatOnly" => new BalancedBot(BalancedBotProfile.StatOnly),
+        "SpecialOnly" => new BalancedBot(BalancedBotProfile.SpecialOnly),
+        "Population" => new PopulationBot(),
+        "Newbie" => new BalancedBot(BalancedBotProfile.Newbie),
         "Expert" => new BalancedBot(BalancedBotProfile.Expert),
         "ExpertWeapon" => new BalancedBot(BalancedBotProfile.ExpertWeapon),
         "SpaceExpansion" => new SpaceExpansionBot(),
         "VendingRush" => new VendingRushBot(),
         "MidTierCamp" => new MidTierCampBot(),
-        _ => throw new ArgumentException($"알 수 없는 봇 이름: {name} (Balanced/Hoarder/Spender/BossPrep/Expert/ExpertWeapon/SpaceExpansion/VendingRush/MidTierCamp 중 하나)"),
+        _ => throw new ArgumentException($"알 수 없는 봇 이름: {name} (Balanced/Hoarder/Spender/BossPrep/RandomBoxes/RandomAll/StatOnly/SpecialOnly/Newbie/Expert/ExpertWeapon/SpaceExpansion/VendingRush/MidTierCamp 중 하나)"),
     };
 }

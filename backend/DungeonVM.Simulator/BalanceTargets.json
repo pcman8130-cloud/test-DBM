@@ -19,7 +19,7 @@
       { "name": "일반 1~9스테", "stages": [1,2,3,4,6,7,8,9], "min": 0.97, "max": 1.00, "current": 1.00, "rationale": "초반 이탈 방지(폐사율 억제)" },
       { "name": "일반 11~29스테", "stages": [11,12,13,14,16,17,18,19,21,22,23,24,26,27,28,29], "min": 0.90, "max": 0.99, "current": 1.00, "rationale": "보스 사이 구간이 현재 100%라 긴장감이 없음. 단 일반 스테이지 난이도를 올리면 폐사율이 급증하므로 최대한 완만하게" },
       { "name": "중간보스 5·15·25스테", "stages": [5,15,25], "min": 0.70, "max": 0.90, "current": {"5": 0.71, "15": 1.00, "25": 0.99}, "rationale": "15/25가 100%로 사실상 보스가 아님" },
-      { "name": "대형보스 10·20스테", "stages": [10,20], "min": 0.50, "max": 0.75, "current": {"10": 0.45, "20": 0.80}, "rationale": "10스테는 너무 어렵고 20스테는 너무 쉬움 — 중반 벽이 거꾸로 배치됨" },
+      { "name": "대형보스 10·20스테", "stages": [10,20], "min": 0.60, "max": 0.85, "current": {"10": 0.83, "20": 0.81}, "rationale": "v0.12에서 '너무 어렵다'는 피드백으로 50~75% → 60~85%로 완화(평균 플레이어가 10스테에서 40% 가까이 막히면 초보가 좌절). 중간보스(5·15·25스테)와 달리 대형보스는 한 번 넘기면 다음 구간이 열리는 벽이라 하한을 너무 낮추지 않는다." },
       { "name": "최종보스 30스테", "stages": [30], "min": 0.10, "max": 0.25, "current": 0.133, "rationale": "평균 플레이어(Balanced 봇)의 최종 보스 승률. 숙련자(skillTiers.expert)와 실력 차이가 크므로 평균 플레이어는 낮게 둔다(숙련자 40~60%는 skillTiers에서 따로 본다)." }
     ]
   },
@@ -32,20 +32,40 @@
     "rationale": "Hoarder(저축형)·Spender(즉시 강화형)·BossPrep(보스 직전 특수 상자)이 모두 비슷한 수준으로 진행되도록, 즉 어떤 방식으로 플레이해도 크게 불리하지 않게. 0.6은 가장 약한 성향의 평균 클리어 스테이지가 가장 강한 성향의 60% 이상이라는 뜻."
   },
 
+  "casualPlayers": {
+    "_desc": "최적이 아닌 플레이어가 균형형 봇 대비 어디까지 가는지. RandomBoxes=상자·후보를 매번 무작위로, RandomAll=거기에 보스 유물도 무작위, StatOnly=능력치 상자만, SpecialOnly=특수 상자만, Newbie=전부 무작위+정리/룬 장착 안 함.",
+    "bots": ["RandomBoxes", "RandomAll", "StatOnly", "SpecialOnly", "Newbie"],
+    "minStageRatio": 0.40,
+    "maxStageRatio": 1.20,
+    "maxClearRate": 0.05,
+    "rationale": "하한 0.4: 선택을 잘못해도(무작위·한 종류만) 균형형 평균 클리어 스테이지의 40% 이상은 가야 한다(선택 실수의 벌이 너무 크면 초보가 좌절). 상한 1.2: 아무렇게나 골라도 균형형보다 잘 가면 선택이 의미 없다. 완주율 상한 5%: 무작위 플레이로 최종 보스를 깨면 안 된다. 측정(보통 난이도, 영혼 없음, 1000회)에서 균형형 대비 RandomBoxes 0.64 / RandomAll 0.70 / StatOnly 0.46 / SpecialOnly 0.65 / Newbie 0.90."
+  },
+
+  "population": {
+    "_desc": "플레이어 집단: 런마다 초보/보통/숙련 플레이어와 그 습관을 확률적으로 뽑아(PopulationBot) 섞인 난이도를 본다. 유형 비율·범위 모두 초안이며 실제 플레이 데이터(텔레메트리)가 모이면 보정한다.",
+    "archetypeWeights": { "novice": 0.30, "casual": 0.45, "skilled": 0.25 },
+    "reach10Min": 0.60, "reach10Max": 0.80,
+    "reach20Min": 0.22, "reach20Max": 0.40,
+    "clearRateMin": 0.03, "clearRateMax": 0.08,
+    "avgStagesMin": 15.0, "avgStagesMax": 20.0,
+    "skillGapMin": 1.2, "skillGapMax": 2.0,
+    "rationale": "섞인 플레이어 중 10스테를 넘기는 비율 60~80%(예전 52%는 \"너무 어렵다\"는 피드백과 일치), 20스테 22~40%, 완주 3~8%. 실력 차(숙련÷초보 평균 클리어)는 1.2~2배: 실력이 의미 있되 초보도 진행할 수 있어야 한다."
+  },
+
   "skillTiers": {
     "_desc": "실력 단계별 목표. 위의 stageWinRate/runClearRate 목표는 평균 플레이어(Balanced 봇) 기준이고, 여기서는 최적 루트를 아는 숙련자(Expert 봇 = 개발자 본인 플레이 루트)가 후반을 어떻게 깨는지를 따로 본다. 한쪽 실력에 난이도를 맞추면 다른 쪽이 너무 쉬워지거나 어려워지므로 둘을 동시에 만족시키는 것이 목표다.",
     "expert": {
       "bot": "Expert",
       "reachStage": 29,
       "finalStage": 30,
-      "reach": { "min": 0.85, "max": 0.97, "rationale": "숙련자는 29스테이지까지는 높은 확률로 깬다(개발자 경험: 29스테이지까지는 쉽고 30스테이지가 어렵다)." },
-      "finalWinRate": { "min": 0.40, "max": 0.60, "rationale": "29스테이지까지 온 숙련자가 최종 보스(30스테이지)를 깰 확률. 마지막 관문은 숙련자에게도 도전적으로." }
+      "reach": { "min": 0.65, "max": 0.90, "rationale": "(v0.12: 상한 85→90%, 보스 완화에 따른 조정) 영혼 시스템이 없는 게임에서 '보통' 난이도 기준: 숙련자(개발자 본인 플레이 루트)도 29스테이지까지 3/4 정도 도달한다(예전 85~97%는 영혼 업그레이드가 최대인 시뮬레이션 기준이었다)." },
+      "finalWinRate": { "min": 0.40, "max": 0.65, "rationale": "29스테이지까지 온 숙련자가 최종 보스(30스테이지)를 깰 확률. 마지막 관문은 숙련자에게도 도전적으로." }
     },
     "expertWeapon": {
       "bot": "ExpertWeapon",
       "reachStage": 29,
       "finalStage": 30,
-      "reach": { "min": 0.80, "max": 0.97, "rationale": "능력치 상자를 한 번도 안 고르고 장비 상자만 골라도(무기 키우기 중심) 숙련자는 29스테이지까지 도달해야 한다 — 능력치 상자가 필수가 되면 안 된다(플레이 피드백)." }
+      "reach": { "min": 0.65, "max": 0.90, "rationale": "(보통 난이도 기준으로 하향, v0.12 상한 90%) 능력치 상자를 한 번도 안 고르고 장비 상자만 골라도(무기 키우기 중심) 숙련자는 29스테이지까지 도달해야 한다 — 능력치 상자가 필수가 되면 안 된다(플레이 피드백)." }
     }
   },
 
@@ -93,11 +113,12 @@
       "difficultyGateMultiplier": { "min": 1.8, "max": 3.2, "current": 2.3 },
       "difficultyGate2Multiplier": { "min": 1.4, "max": 3.2, "current": 1.9 },
       "bossNerfMultiplier":       { "min": 0.5, "max": 1.0, "current": 0.7 },
+      "enemyScaleMultiplier":     { "min": 0.5, "max": 1.2, "current": 0.85 },
       "scalePerStage":            { "min": 0.025, "max": 0.045, "current": 0.035 },
-      "stage5BossMultiplier":     { "min": 0.8,  "max": 2.0,  "current": 1.12 },
-      "stage10BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.12 },
+      "stage5BossMultiplier":     { "min": 0.8,  "max": 2.0,  "current": 1.0 },
+      "stage10BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 0.95 },
       "stage20BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.12 },
-      "stage25BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.4 },
+      "stage25BossMultiplier":    { "min": 0.8,  "max": 2.0,  "current": 1.45 },
       "stage30BossMultiplier":    { "min": 0.8,  "max": 2.5,  "current": 1.4 },
       "stage30BossDamageMultiplier": { "min": 0.6, "max": 1.2, "current": 0.85 }
     },

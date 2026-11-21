@@ -30,6 +30,8 @@ public static class WaveEngine
         if (config.DifficultyGateStage2 > 0 && stage >= config.DifficultyGateStage2)
             scale *= config.DifficultyGate2Multiplier > 0 ? config.DifficultyGate2Multiplier : config.DifficultyGateMultiplier;
 
+        scale *= config.EnemyScaleMultiplier > 0 ? config.EnemyScaleMultiplier : 1.0; // 난이도 전체 배율(보통 0.85)
+
         // 중간보스/보스 스테이지는 프로토타입(makeWave)과 동일하게 그 보스 "단독" 웨이브다 — 일반 몹과
         // 같이 나오지 않는다. 예전엔 일반 몹 mobCount마리를 무조건 먼저 채운 뒤 보스를 추가로 얹었는데,
         // 그러면 동시교전수(3) 전부가 일반 몹 focus-fire에 낭비되고 보스는 뒷전으로 밀리는 데다,
