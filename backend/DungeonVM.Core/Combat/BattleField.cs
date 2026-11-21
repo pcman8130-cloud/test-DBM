@@ -153,6 +153,7 @@ public sealed class BattleField
 
         double dmg = DamageCalculator.ComputeDamage(c.AttackDamage, c.Element, target.Element);
         if (target.IsMidBoss || target.IsBigBoss) dmg *= 1 + mods.BossDamagePct;
+        if (_monsterBurnRemaining.GetValueOrDefault(target.Id) > 0) dmg *= 1 + mods.BurningTargetDamagePct; // 셀레멘더의 발톱: 화염 상태의 적에게 주는 피해 증가
 
         // 무기 고유 스킬(Lv.5/10/15 마일스톤) — 프로토타입 applyWeaponSkill과 동일 스펙.
         if (weapon is not null)

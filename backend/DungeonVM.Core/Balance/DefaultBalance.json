@@ -62,12 +62,13 @@
     "difficultyGateStage1": 11,
     "difficultyGateStage2": 21,
     "difficultyGateMultiplier": 2.3,
+    "difficultyGate2Multiplier": 1.9,
     "bossNerfMultiplier": 0.7,
     "stage5BossMultiplier": 1.12,
     "stage10BossMultiplier": 1.12,
     "stage20BossMultiplier": 1.12,
-    "stage25BossMultiplier": 1.15,
-    "stage30BossMultiplier": 1.1,
+    "stage25BossMultiplier": 1.4,
+    "stage30BossMultiplier": 1.4,
     "stage30BossDamageMultiplier": 0.85
   },
   "metaProgression": {

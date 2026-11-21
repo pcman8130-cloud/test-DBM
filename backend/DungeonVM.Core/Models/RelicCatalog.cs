@@ -15,7 +15,7 @@ public static class RelicCatalog
     public static readonly IReadOnlyList<RelicDef> All = new List<RelicDef>
     {
         // ── 5스테이지 ──
-        Boss(5, "goblin_wallet", "탐욕의 고블린 지갑", "모든 골드 획득량 +25%, 받는 피해 +5%", new() { GoldGainPct = 0.25, DamageTakenPct = 0.05 }),
+        Boss(5, "goblin_wallet", "탐욕의 고블린 지갑", "모든 골드 획득량 +25%", new() { GoldGainPct = 0.25 }),
         Boss(5, "command_flag", "전투 지휘 깃발", "공격력 +10%, 공격속도 +10%", new() { AttackPct = 0.10, AttackSpeedPct = 0.10 }),
         Boss(5, "chief_epaulette", "족장의 견장", "받는 피해 3 감소, 보스에게는 8 감소(공격 1회당 고정값)", new() { DamageReductionFlat = 3, BossDamageReductionFlat = 5 }),
 
@@ -24,14 +24,14 @@ public static class RelicCatalog
         Boss(10, "ogre_blood", "오우거의 피", "최대 체력 +40", new() { MaxHealthFlat = 40 }),
 
         // ── 15스테이지 ──
-        Boss(15, "salamander_claw", "셀레멘더의 발톱", "모든 공격에 화염 속성 부여(불 룬 장착 시 화염 도트 피해 ×1.5)", new() { FireAttacks = true, FireRuneDotMult = 1.5 }),
+        Boss(15, "salamander_claw", "셀레멘더의 발톱", "모든 공격에 화염 속성 부여(불 룬 장착 시 화염 도트 피해 ×1.5), 화염 상태의 적에게 주는 피해 +10%", new() { FireAttacks = true, FireRuneDotMult = 1.5, BurningTargetDamagePct = 0.10 }),
         Boss(15, "mystic_cloak", "신비주의자의 망토", "회피율 +15%, 공격속도 +10%", new() { Dodge = 0.15, AttackSpeedPct = 0.10 }),
         Boss(15, "flame_tail", "불꽃 꼬리", "근접 무기(검·단검·방패) 공격 시 25% 확률로 공격력의 125% 범위 피해", new() { MeleeAoeChance = 0.25, MeleeAoeRatio = 1.25 }),
 
         // ── 20스테이지 ──
         Boss(20, "rune_tablet", "룬이 새겨진 석판", "스킬 쿨타임 -15%, 마법 무기(성서·지팡이) 쿨타임 -10% 추가 및 공격력 +15%", new() { Cdr = 0.15, MagicCdr = 0.10, MagicAttackPct = 0.15 }),
         Boss(20, "ancient_guardian", "고대의 수호자", "최대 체력 +20%, 적의 범위 공격 피해 -30%", new() { MaxHealthPct = 0.20, AoeDamageTakenPct = -0.30 }),
-        Boss(20, "ancient_coin", "고대 주화", "100골드를 얻고, 무기 한 종류를 골라 이후 자판기·보상에서 나오지 않게 함", new(), goldOnPick: 100, bansWeapon: true),
+        Boss(20, "ancient_coin", "고대 주화", "200골드를 얻고, 무기 한 종류를 골라 이후 자판기·보상에서 나오지 않게 함", new(), goldOnPick: 200, bansWeapon: true),
 
         // ── 25스테이지 ──
         Boss(25, "dragon_orb", "용의 보주", "스킬 쿨타임 -20%, 스킬 피해 +20%", new() { Cdr = 0.20, SkillDamage = 0.20 }),

@@ -190,3 +190,28 @@ LLM 튜닝안(일반 몬스터 체력 68→78 등)은 초반 승률을 크게 �
 장비만 고르는 숙련자가 후반(29스테이지)에 닿기 어려워서, Lv.5 이상 무기를 든 캐릭터에게 **체력 +15**(고정, 레벨이 더 올라도 늘지 않음)를 준다.
 백엔드 `weapons.healthBonusAtLevel5` = 15(`Weapon.BonusHealth`), 프로토타입 `LEVEL5_HP_BONUS` = 15(`computeCharStats`).
 보스 배율은 그대로 둬서 20스테이지(75.2%)와 30스테이지가 목표 상한 근처로 올라간다(체력을 올리고 보스를 같이 올리면 효과가 상쇄돼서 하지 않음).
+
+## 2026-11: Unity 포팅 (브랜치 `unity-balance-sync`)
+
+Unity(`Assets/DungeonVending/`)의 웹 규칙 구현을 이 프로토타입(= BALANCE.md v0.8)과 맞췄다. 수치만이 아니라 구조까지 옮겼다.
+
+- **수치**: `DungeonWebBalance.cs`(`WebBalanceConfig`) / `Data/DungeonWebBalance.asset` — 몬스터 체력 68·580·1750, 게이트 ×2.3, 보스 스테이지별 배율(5/10/20/25/30)과 30스테이지 공격력 ×0.85,
+  클리어 골드 48+10×스테이지, 스킬 보너스 {0, .58, .93, 1.58}, 성서 치유 {0, .25, .4, .6}, Lv.5 무기 체력 +15, 장비 상자 구간표·능력치 상자 수치.
+- **구조**: `DungeonWebRelics.cs`(신규) — 유물 28종(보스 14 + 일반 14, `WebRelicTable`)과 효과 합산(`WebModifiers`), 보상 흐름
+  `[보스 유물] → [고대 주화: 무기 제외] → 상자 3종 선택 → 결과 후보 3개 중 하나`(`WebRewardStep`), 팀 영구 성장 5종, 속임수 동전(무료 뽑기).
+  `DungeonWebRules.cs` — 룬 합성 귀속(`WebMergeResult`), 무기 금지, 새 스탯 공식. `DungeonWebCombat.cs` — 유물 훅(화염 부여·추가 공격·불꽃 꼬리·흡혈·보호막·피해 경감 등).
+- **차이점**: 고대 주화의 무기 제외 창은 보상 카드가 3장뿐이라 "근접/원거리 줄 선택 → 무기 선택" 2단계로 만들었다. 보스 유물 설명의 "15% 흡혈"은 프로토타입 코드대로 실제로는 20%(`holyLifestealRatio`)로 동작한다.
+- **검증**: `node Tools/web-rules-oracle.cjs`가 `prototype/index.html`을 실행해 `tmp/web-rules-oracle.json`을 만들고,
+  메뉴 `Dungeon Vending/Test Website/Compare With JavaScript Oracle`이 C# 구현과 1,500건 이상 비교한다(스탯·유물 효과·웨이브·뽑기·전투 237틱·상자 후보와 claim 결과).
+  `.asset`이 코드 기본값과 어긋나면 이 비교가 실패하며, `Reset Balance Asset To Defaults` 메뉴로 맞춘다. 수치를 바꿀 때는 프로토타입 → 오라클 → Unity 순서로 맞춘다.
+
+### 약한 보스 유물 상향 (v0.9)
+21스테이지가 너무 어렵다는 피드백으로 선택 구성(지갑·건틀렛·화염 발톱·고대 주화)을 시뮬레이터에 그대로 넣어 보니 21스테이지 승률 72%. 세 유물이 같은 스테이지 선택지 중 가장 약했다.
+- **탐욕의 고블린 지갑:** 받는 피해 +5% 패널티 삭제(골드 +25%만 남음).
+- **셀레멘더의 발톱:** 화염 상태의 적에게 주는 피해 +10% 추가(백엔드 `RelicMods.BurningTargetDamagePct` + `BattleField`, 프로토타입 `burnTargetDmgPct`(`target.burn`), Unity `burnTargetDmgPct`(`Enemy.BurnRemaining`)).
+- **고대 주화:** 선택 시 얻는 골드 100 → 200(`goldOnPick`).
+처음엔 발톱 공격력 +20%, 주화 체력 +15%였으나 너무 크다는 의견으로 위처럼 줄였다. 백엔드·프로토타입·Unity 세 곳을 같이 바꿨고 Unity 웹 규칙 회귀 검사(JS 오라클 대비)로 일치를 확인한다.
+
+### 21스테이지 난이도 게이트 완화 (v0.10)
+두 번째 게이트(21스테~)만 ×2.3 → **×1.9**(첫 게이트 ×2.3 유지). 백엔드 `wave.difficultyGate2Multiplier`(0 이하이면 `difficultyGateMultiplier`와 같음), 프로토타입 `DIFFICULTY_GATES[1].mult`, Unity `gate2Multiplier`.
+게이트 완화로 쉬워지는 25·30스테 보스는 배율을 1.15 → 1.4, 1.1 → 1.4로 올려 난이도를 유지(`stage25BossMultiplier`, `stage30BossMultiplier`).

@@ -111,6 +111,9 @@ public sealed class WaveBalanceSection
     public int DifficultyGateStage1 { get; set; }
     public int DifficultyGateStage2 { get; set; }
     public double DifficultyGateMultiplier { get; set; } = 1.0;
+    /// <summary>두 번째 게이트(21스테~)에만 쓰는 배율. 0 이하이면 DifficultyGateMultiplier와 같은 값을 쓴다.
+    /// 21스테 이후 일반 웨이브가 첫 게이트보다 훨씬 가파르게 느껴져서 두 게이트를 따로 조정할 수 있게 분리했다.</summary>
+    public double DifficultyGate2Multiplier { get; set; } = 0;
 
     /// <summary>모든 중간보스·대형보스(5/10/15/20/25/30스테)의 체력·공격력에 곱해지는 하향 배율.
     /// 위 난이도 게이트 도입 후 보스가 과하게 강해졌다는 플레이테스트 피드백으로 추가됨(기본 1.0 = 하향 없음).</summary>

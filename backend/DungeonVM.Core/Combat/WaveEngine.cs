@@ -28,7 +28,7 @@ public static class WaveEngine
         if (config.DifficultyGateStage1 > 0 && stage >= config.DifficultyGateStage1)
             scale *= config.DifficultyGateMultiplier;
         if (config.DifficultyGateStage2 > 0 && stage >= config.DifficultyGateStage2)
-            scale *= config.DifficultyGateMultiplier;
+            scale *= config.DifficultyGate2Multiplier > 0 ? config.DifficultyGate2Multiplier : config.DifficultyGateMultiplier;
 
         // 중간보스/보스 스테이지는 프로토타입(makeWave)과 동일하게 그 보스 "단독" 웨이브다 — 일반 몹과
         // 같이 나오지 않는다. 예전엔 일반 몹 mobCount마리를 무조건 먼저 채운 뒤 보스를 추가로 얹었는데,

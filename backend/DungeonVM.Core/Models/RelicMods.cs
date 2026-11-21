@@ -16,6 +16,7 @@ public sealed class RelicMods
     public double PhysicalAttackSpeedPct;   // 물리 무기 공격속도 +%(음수 = 감소)
     public double MagicAttackPct;           // 마법 무기(지팡이·성서) 공격력 +%
     public double BossDamagePct;            // 보스에게 주는 피해 +%
+    public double BurningTargetDamagePct;   // 화염(화상) 상태인 적에게 주는 피해 +%
 
     // 방어
     public double DamageTakenPct;           // 받는 피해 +%(음수 = 감소)
@@ -53,7 +54,7 @@ public sealed class RelicMods
     {
         AttackPct += o.AttackPct; AttackSpeedPct += o.AttackSpeedPct;
         PhysicalAttackPct += o.PhysicalAttackPct; PhysicalAttackSpeedPct += o.PhysicalAttackSpeedPct;
-        MagicAttackPct += o.MagicAttackPct; BossDamagePct += o.BossDamagePct;
+        MagicAttackPct += o.MagicAttackPct; BossDamagePct += o.BossDamagePct; BurningTargetDamagePct += o.BurningTargetDamagePct;
         DamageReductionFlat += o.DamageReductionFlat; BossDamageReductionFlat += o.BossDamageReductionFlat; DamageTakenPct += o.DamageTakenPct; BossDamageTakenPct += o.BossDamageTakenPct; AoeDamageTakenPct += o.AoeDamageTakenPct;
         MaxHealthFlat += o.MaxHealthFlat; MaxHealthPct += o.MaxHealthPct; Dodge += o.Dodge;
         StartShield += o.StartShield; RegenPerSecond += o.RegenPerSecond; HealOnAttack += o.HealOnAttack;
