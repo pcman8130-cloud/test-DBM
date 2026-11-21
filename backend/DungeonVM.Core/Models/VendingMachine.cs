@@ -23,9 +23,6 @@ public sealed class VendingMachine
     /// <summary>속임수 동전 유물: 다음 뽑기(무기/방어구)가 무료인지.</summary>
     public bool NextRollFree { get; set; }
 
-    /// <summary>MetaProgression.FirstRollTierBoostChance 판정 성공 시 다음 1회 뽑기를 최소 2티어로 보장한다.</summary>
-    public bool NextRollGuaranteedTier2 { get; set; }
-
     /// <summary>자판기 강화 레벨(1~5)별 뽑기 등장 티어 확률표. 프로토타입(index.html)의 WEAPON_LEVEL_TABLE과
     /// 정확히 동일하다 — 예전엔 이 표 없이 "레벨이 오를수록 2티어 확률만 선형 증가"하는 이진(1티어 vs 2티어)
     /// 방식이었는데, 그러면 자판기를 아무리 강화해도 뽑기로는 절대 2티어를 못 넘고 나머지는 전부 머지로만
@@ -45,12 +42,6 @@ public sealed class VendingMachine
         var allowed = AllWeaponTypes.Where(t => !BannedWeaponTypes.Contains(t)).ToArray();
         var type = allowed[rng.Next(allowed.Length)];
         int tier = RollWeaponTier(rng);
-
-        if (NextRollGuaranteedTier2)
-        {
-            tier = Math.Max(tier, 2);
-            NextRollGuaranteedTier2 = false;
-        }
 
         return new Weapon(type, tier);
     }

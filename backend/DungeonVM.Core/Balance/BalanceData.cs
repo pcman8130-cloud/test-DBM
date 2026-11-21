@@ -11,7 +11,6 @@ public sealed class BalanceData
     public ArmorBalanceSection Armor { get; set; } = new();
     public VendingMachineBalanceSection VendingMachine { get; set; } = new();
     public WaveBalanceSection Wave { get; set; } = new();
-    public MetaProgressionBalanceSection MetaProgression { get; set; } = new();
     public CurrencyBalanceSection Currency { get; set; } = new();
     public StageLoopBalanceSection StageLoop { get; set; } = new();
     public CharacterBalanceSection Character { get; set; } = new();
@@ -119,7 +118,7 @@ public sealed class WaveBalanceSection
     /// 위 난이도 게이트 도입 후 보스가 과하게 강해졌다는 플레이테스트 피드백으로 추가됨(기본 1.0 = 하향 없음).</summary>
     public double BossNerfMultiplier { get; set; } = 1.0;
     /// <summary>난이도 전체 배율: 모든 적(일반·중간보스·보스)의 체력과 공격력에 곱해진다. 1.0이 "어려움"이고 낮을수록 쉽다
-    /// (보통 = 0.85). 영혼 업그레이드가 없는 게임(HTML·Unity)에서 평균 플레이어가 겪는 난이도를 한 값으로 조정하려고 둔다.</summary>
+    /// (보통 = 0.85). 평균 플레이어가 겪는 난이도를 한 값으로 조정하려고 둔다.</summary>
     public double EnemyScaleMultiplier { get; set; } = 1.0;
 
     /// <summary>특정 보스 스테이지(5·10·20·25·30)만 따로 조정하는 체력·공격력 배율. 중간보스·대형보스 수치(MidBoss*/BigBoss*)는
@@ -134,21 +133,13 @@ public sealed class WaveBalanceSection
     public double Stage30BossDamageMultiplier { get; set; } = 1.0;
 }
 
-public sealed class MetaProgressionBalanceSection
-{
-    public int MaxLevel { get; set; }
-    public int LevelCostBase { get; set; }
-    public int LevelCostPerLevel { get; set; }
-    public double RetireSpeedPerLevel { get; set; }
-    public double FirstRollTierBoostPerLevel { get; set; }
-    public double BaseHealthBonusPerLevel { get; set; }
-}
-
 public sealed class CurrencyBalanceSection
 {
     public int WeaponMarketValueTierBase { get; set; }
     public Dictionary<string, int> ArmorMarketValues { get; set; } = new();
     public double SellRefundRatio { get; set; }
+    /// <summary>0보다 크면 무기·방어구를 레벨/등급과 무관하게 이 금액으로 판매한다(HTML 프로토타입·Unity 웹 규칙은 고정 5G: ROLL_COST × 0.5). 0이면 기존 방식(시세 × 환급 비율).</summary>
+    public int FlatSellValue { get; set; }
 }
 
 public sealed class StageLoopBalanceSection
@@ -156,8 +147,6 @@ public sealed class StageLoopBalanceSection
     public int MaxStage { get; set; }
     public int VictoryGoldBase { get; set; }
     public int VictoryGoldPerStage { get; set; }
-    public int VictorySoulsBase { get; set; }
-    public int VictorySoulsStageDivisor { get; set; }
 }
 
 public sealed class CharacterBalanceSection
@@ -270,10 +259,6 @@ public sealed class StageRewardChoiceBalanceSection
     /// <summary>중간보스/보스 스테이지의 유틸 수치 배율.</summary>
     public double MidBossUtilityScale { get; set; } = 1.5;
     public double BossUtilityScale { get; set; } = 2.0;
-
-    /// <summary>중간보스/보스 기본보상에 추가되는 영혼(정규 스테이지는 영혼을 주지 않는다).</summary>
-    public int MidBossBaseSoulsBonus { get; set; }
-    public int BossBaseSoulsBonus { get; set; }
 
     // ── 장비 상자의 골드 후보 금액: `기본 + PerStage × 스테이지`(유물 골드 배율 적용). 장비/방어구가 마음에 안 들거나 그리드가 가득 찼을 때의 대안. ──
     public int RegularGoldOption { get; set; }

@@ -82,7 +82,6 @@ public static class RelicReport
     {
         var bot = BotCatalog.Create(botName);
         var rng = new Random(seed);
-        var meta = new MetaProgression();
         var metrics = new WeaponTierMetrics();
         var attempts = new StageAttemptCollector();
         var cleared = new List<(int Cleared, bool Bible)>(runs);
@@ -92,7 +91,7 @@ public static class RelicReport
 
         for (int i = 0; i < runs; i++)
         {
-            var result = Program.SimulateOneRun(bot, i, rng, meta, metrics, attempts,
+            var result = Program.SimulateOneRun(bot, i, rng, metrics, attempts,
                 forceRelic: boss ? (stage, _) => stage == job.BossStage ? job.Relic!.Id : null : null,
                 onStageStart: regular ? (stage, loop) =>
                 {
@@ -100,7 +99,6 @@ public static class RelicReport
                     if (stage == job.Relic!.UnlockStage) loop.GrantRelic(job.Relic);
                 } : null);
             cleared.Add((result.StagesCleared, result.FinalWeapons.Any(w => w.StartsWith(splitWeapon))));
-            Program.InvestMetaSouls(meta);
         }
         return cleared;
     }

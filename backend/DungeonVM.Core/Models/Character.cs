@@ -8,7 +8,6 @@ public sealed class Character
 {
     private static CharacterBalanceSection Config => BalanceProvider.Current.Character;
 
-    private readonly double _metaBaseHealthBonus;
     private double _runBonusAttack;
     private double _runBonusHealth;
     private double _runAttackPercent;      // 능력치 상자: 공격력 %(0.1 = +10%)
@@ -30,11 +29,9 @@ public sealed class Character
     /// <summary>전투 시작 시 받는 보호막(체력보다 먼저 소모). 전투가 끝나면 사라진다.</summary>
     public double Shield { get; private set; }
 
-    /// <summary>metaBaseHealthBonus: MetaProgression.BaseHealthBonus(영혼 스킬트리 효과)를 그대로 전달.</summary>
-    public Character(string name, double metaBaseHealthBonus = 0)
+    public Character(string name)
     {
         Name = name;
-        _metaBaseHealthBonus = metaBaseHealthBonus;
         CurrentHealth = MaxHealth;
     }
 
@@ -43,7 +40,7 @@ public sealed class Character
     private bool IsPhysical => EquippedWeapon is { } w && IsPhysicalType(w.Type);
     private bool IsMagic => EquippedWeapon is { } w && IsMagicType(w.Type);
 
-    public double MaxHealth => (Config.BaseHealth + _metaBaseHealthBonus + _runBonusHealth
+    public double MaxHealth => (Config.BaseHealth + _runBonusHealth
         + (EquippedWeapon?.BonusHealth ?? 0) + (EquippedArmor?.BonusHealth ?? 0) + RelicMods.MaxHealthFlat) * (1 + RelicMods.MaxHealthPct);
 
     public double AttackDamage => ((EquippedWeapon?.Damage ?? 0) + _runBonusAttack) * (1 + _runAttackPercent)
@@ -135,7 +132,7 @@ public sealed class Character
         CurrentHealth = Math.Min(CurrentHealth, after);
     }
 
-    /// <summary>스테이지 보상의 '팀 능력치 영구증가' 선택지 적용. 이번 런 동안 유지되며(영혼 스킬트리와 별개), 체력 증가분만큼 즉시 회복한다.</summary>
+    /// <summary>스테이지 보상의 '팀 능력치 영구증가' 선택지 적용. 이번 런 동안 유지되며, 체력 증가분만큼 즉시 회복한다.</summary>
     public void AddRunBonus(double attackBonus, double healthBonus)
     {
         _runBonusAttack += attackBonus;
@@ -161,12 +158,12 @@ public sealed class Character
         RetireRemainingSeconds = Config.RetireDurationSeconds;
     }
 
-    /// <summary>매 틱 호출. 유물/스킬로 리타이어 시간이 단축된 경우 retireSpeedMultiplier &gt; 1을 전달한다.</summary>
-    public void AdvanceRetireTimer(double deltaSeconds, double retireSpeedMultiplier = 1.0)
+    /// <summary>매 틱 호출.</summary>
+    public void AdvanceRetireTimer(double deltaSeconds)
     {
         if (!IsRetired) return;
 
-        RetireRemainingSeconds -= deltaSeconds * retireSpeedMultiplier;
+        RetireRemainingSeconds -= deltaSeconds;
         if (RetireRemainingSeconds <= 0)
             ReviveNow();
     }

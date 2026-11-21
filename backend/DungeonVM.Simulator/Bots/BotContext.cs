@@ -10,7 +10,6 @@ public sealed class BotContext
 {
     public StageLoop StageLoop { get; }
     public Random Rng { get; }
-    public MetaProgression Meta { get; }
 
     public CurrencyManager Currency => StageLoop.Currency;
     public Core.Inventory.InventoryManager Inventory => StageLoop.Inventory;
@@ -31,11 +30,13 @@ public sealed class BotContext
     /// 자판기 Lv.5에서는 뽑은 무기를 바로 파는 환급 기댓값이 뽑기 비용(10G)과 거의 같아서, 그리드가 가득 찰 때마다 정리하며 계속 뽑는 봇이 끝나지 않는다.</summary>
     public int RollsThisStage { get; set; }
 
-    public BotContext(StageLoop stageLoop, Random rng, MetaProgression meta)
+    /// <summary>이번 스테이지에서 방어구 파밍 뽑기를 누른 횟수(상한 확인용).</summary>
+    public int ArmorRollsThisStage { get; set; }
+
+    public BotContext(StageLoop stageLoop, Random rng)
     {
         StageLoop = stageLoop;
         Rng = rng;
-        Meta = meta;
     }
 
     /// <summary>
@@ -178,7 +179,7 @@ public sealed class BotContext
     {
         if (!StageLoop.CanUnlockCharacterSlot) return false;
         if (!Currency.TrySpend(CurrencyType.Gold, StageLoop.NextCharacterSlotGoldCost())) return false;
-        StageLoop.UnlockCharacterSlot(Meta.BaseHealthBonus);
+        StageLoop.UnlockCharacterSlot();
         return true;
     }
 

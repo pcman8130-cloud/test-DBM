@@ -14,8 +14,8 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
 
 `BalanceProvider.LoadFromJson`은 **섹션 단위로만 병합**한다(필드 단위 아님) — 한 섹션을 넣으려면 그 섹션의 모든 필드를
 채워야 하고, 일부만 넣으면 나머지 필드는 0/기본값으로 덮어써진다. 그래서 `balance-snapshot.json`은 항상 전체 섹션을
-통째로 담고 있고, 프로토타입이 관여하지 않는 값(예: `metaProgression`, 영혼/`souls` 관련 필드)은 백엔드 기본값을
-그대로 들고 있다 — 프로토타입에 아직 영혼/메타프로그레션 시스템 자체가 없기 때문.
+통째로 담고 있고, 프로토타입이 관여하지 않는 값은 백엔드 기본값을 그대로 들고 있다.
+(영혼/메타프로그레션 시스템은 v0.13에서 백엔드에서도 삭제했다.)
 
 ## 현재 상태: 백엔드 동기화 이후 플레이테스트로 재조정된 값들
 
@@ -72,7 +72,6 @@ dotnet run --project DungeonVM.Simulator/DungeonVM.Simulator.csproj -c Release -
   대형보스 원소 순환 배정 — 몬스터에 속성 필드 자체가 없어서 미구현
 - 캐릭터별 개별 리타이어(기절 30초 후 자동 부활) — 지금은 파티 전멸 시 즉시 게임오버
 - 방패(Shield)의 어그로 유발(`pullAggro`) — 프로토타입은 항상 전열 우선 고정 타겟팅이라 어그로 개념 자체가 없음
-- 영혼(Souls)/메타프로그레션 영구 스킬트리 — 프로토타입에 재화 자체가 없음
 
 ## 2026-10: 스테이지 보상을 3개 상자(2중 가챠)로 개편 — 프로토타입을 백엔드와 동일하게 맞춤
 
@@ -229,3 +228,10 @@ Unity(`Assets/DungeonVending/`)의 웹 규칙 구현을 이 프로토타입(= BA
 - 보스 배율: 5스테 1.0 / 10스테 0.95 / 20스테 1.12 / 25스테 1.45 / 30스테 1.4 (백엔드 `wave.stage*BossMultiplier` · 프로토타입 `STAGE*_BOSS_MULT` · Unity `stage*BossMultiplier`/`.asset`). 검증: 시뮬레이터, Unity 컴파일 오류 0, 웹 오라클 1501건 통과.
 - `PopulationBot`(`Bots/PopulationBot.cs`): 런마다 유형(초보/보통/숙련, 비율은 `BalanceTargets.json`의 `population.archetypeWeights`)과 습관(저축 성향, 상자 선택 정책, 실수 확률, 정리/룬 장착 여부)을 뽑는다. 평가기 "플레이어 집단"(`population.*`) 지표로 튜닝에 반영되고, `--compare-bots Population`으로 보스별 승률/누적 도달률을 볼 수 있다.
 - 비교 스크립트(임시): 보스 배율별 Population 결과를 훑을 때 `--balance <json>`으로 wave 값을 덮어쓰고 `--compare-bots Population`을 병렬로 돌렸다.
+
+### 영혼 시스템 삭제 (v0.13)
+백엔드·시뮬레이터에서 영혼(Souls) 재화와 메타프로그레션(영혼 스킬트리)을 통째로 삭제했다: `Systems/MetaProgression.cs`, `CurrencyType.Souls`, `StageLoop.SoulsEarnedThisRun`, `metaProgression`/`victorySouls*`/`*BaseSoulsBonus` 수치(`DefaultBalance.json`·`balance-snapshot.json`·`balance_schema.py`), `Character`의 메타 체력 보너스 인자, `BattleField.Tick`의 `retireSpeedMultiplier`, 자판기 `NextRollGuaranteedTier2`, 시뮬레이터 `--with-meta`·`FinalSouls`. 프로토타입/Unity 웹 규칙에는 원래 없던 기능이라 게임 수치는 그대로다.
+
+### 방어구 파밍 봇 · 판매 가격 불일치 발견
+- 봇 추가: `ArmorEpic`/`ArmorLegend`(균형형 + 파티 전원이 목표 등급 방어구를 입을 때까지 무기 대신 방어구 뽑기), `ExpertArmorEpic`/`ExpertArmorLegend`(숙련자 루트를 다 끝낸 뒤 방어구 파밍). 진단 도구: `--clear-profile`(30스테 클리어 파티 스펙), `--stage30-probe`(같은 파티에서 방어구/무기만 바꿔 30스테 보스 재전투).
+- **불일치:** HTML 프로토타입(`ITEM_SELL_VALUE`)과 Unity 웹 규칙(`saleValue`)은 무기·방어구를 레벨/등급과 무관하게 **고정 5G**(ROLL_COST × 0.5)에 판매하는데, 백엔드는 무기 레벨·방어구 등급별 시세(레어 20G, 에픽 45G, 레전더리 100G 등)로 판매한다. 방어구 뽑기(10G)가 레어 이상이면 판매로 이득이 되어, 시뮬레이터의 방어구 파밍이 실제 게임보다 훨씬 싸게 나온다. `currency.flatSellValue`(0보다 크면 고정 판매가)를 추가했고 기본값 0(기존 동작)으로 두었다. 5로 맞추면 균형형 봇 완주율 8.3% → 6.6%.

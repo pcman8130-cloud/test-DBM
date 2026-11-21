@@ -28,7 +28,6 @@ public sealed class StageLoop
     public VendingMachine Machine { get; } = new();
     public List<Character> Party { get; }
 
-    public int SoulsEarnedThisRun { get; private set; }
     public bool IsRunComplete => CurrentStage > MaxStage;
 
     /// <summary>이번 런에서 획득한 모든 유물(보스 유물 + 특수 상자 유물)의 Id. 중복 보유는 없다.</summary>
@@ -76,14 +75,6 @@ public sealed class StageLoop
         var tier = WaveEngine.IsBigBossStage(CurrentStage) ? StageTier.Boss
             : WaveEngine.IsMidBossStage(CurrentStage) ? StageTier.MidBoss
             : StageTier.Regular;
-
-        int soulsReward = tier switch
-        {
-            StageTier.Boss => rewardConfig.BossBaseSoulsBonus,
-            StageTier.MidBoss => rewardConfig.MidBossBaseSoulsBonus,
-            _ => 0, // 기본 스테이지는 영혼을 주지 않는다(영혼은 중간보스/보스 기본보상 전용).
-        };
-        SoulsEarnedThisRun += soulsReward;
 
         var options = BuildRewardOptions(tier, rewardConfig, CurrentStage);
 
@@ -331,9 +322,9 @@ public sealed class StageLoop
 
     /// <summary>골드로 새 캐릭터 슬롯(장착 무기/방어구 없는 빈 아바타)을 해금한다. 골드 차감은 호출자 책임.
     /// 이미 획득한 유물 효과를 새 캐릭터에도 그대로 적용한다.</summary>
-    public Character UnlockCharacterSlot(double metaBaseHealthBonus)
+    public Character UnlockCharacterSlot()
     {
-        var character = new Character($"Hero{Party.Count + 1}", metaBaseHealthBonus);
+        var character = new Character($"Hero{Party.Count + 1}");
         character.SetRelicMods(Mods);
         Party.Add(character);
         return character;

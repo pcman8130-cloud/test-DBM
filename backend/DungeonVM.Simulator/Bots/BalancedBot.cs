@@ -47,6 +47,7 @@ public sealed class BalancedBot : IBot
     public void OnCombatTick(BotContext ctx)
     {
         ctx.ApplyFreeActions();
+        if (FarmArmor(ctx)) return;
         // 프로토타입은 rollWeapon() 안에서 매 뽑기 직후 tryAutoMerge()를 호출해 즉시 합성한다. 예전엔
         // 여기서 재뽑기를 몇 번이고 몰아서 하고 나서야 ApplyFreeActions(자동합성)를 한 번 부르는 구조라,
         // 한 틱에 골드가 남아 재뽑기 5~10번이 몰리면 그리드(16칸)가 합성 없이 그대로 채워지다 넘쳐서
@@ -58,6 +59,7 @@ public sealed class BalancedBot : IBot
     public void OnMaintenancePhase(BotContext ctx)
     {
         ctx.RollsThisStage = 0;
+        ctx.ArmorRollsThisStage = 0;
         ctx.ApplyFreeActions();
         CullGrid(ctx);
 
@@ -127,10 +129,13 @@ public sealed class BalancedBot : IBot
         EquipUnarmed(ctx);
         EquipMinimalArmor(ctx);
 
+        // 방어구 파밍형: 목표 등급에 못 미치는 캐릭터가 있으면 남는 골드를 무기 대신 방어구 뽑기에 쓴다.
+        bool farmingArmor = FarmArmor(ctx);
+
         // 남는 골드는 무기 재뽑기로. 다음 라운드로빈 목표가 1~2스테 수입으로 곧 감당 가능하면 저축.
         // 프로토타입처럼 뽑을 때마다 즉시 자동합성해서, 그리드(16칸)가 합성 없이 쌓이다 넘쳐 강제 판매되는
         // 낭비를 막는다.
-        if (!ShouldSaveForNextGoal(ctx))
+        if (!farmingArmor && !ShouldSaveForNextGoal(ctx))
             RollWhilePossible(ctx);
 
         foreach (var character in ctx.Party)
@@ -350,6 +355,41 @@ public sealed class BalancedBot : IBot
             if (ctx.TryEquipFromGrid(character, w => !IsAlwaysSold(w.Type)))
                 _committedType[character.Id] = character.EquippedWeapon!.Type;
         }
+    }
+
+    /// <summary>스테이지당 방어구 뽑기 상한(무한 파밍 방지).</summary>
+    private const int MaxArmorRollsPerStage = 80;
+
+    /// <summary>ArmorTarget이 있고 목표 등급에 못 미치는(무장한) 캐릭터가 있으면 골드로 방어구를 뽑아 가장 낮은 방어구를 입은 캐릭터부터
+    /// 갈아입히고, 쓸모없어진 방어구는 바로 판다. 목표가 안 이뤄졌으면 true(이 동안은 무기 뽑기를 하지 않는다 — 골드를 방어구에 몰아준다).</summary>
+    private bool FarmArmor(BotContext ctx)
+    {
+        if (_profile.ArmorTarget is not { } target) return false;
+        if (_profile.Plan is not null && CurrentGoal(ctx) is not null) return false;
+        if (ctx.Party.Any(c => c.EquippedWeapon is null)) return false;
+
+        bool Unmet() => ctx.Party.Any(c => (c.EquippedArmor?.Rarity ?? (ArmorRarity)(-1)) < target);
+        if (!Unmet()) return false;
+
+        while (Unmet() && ctx.ArmorRollsThisStage < MaxArmorRollsPerStage)
+        {
+            if (!ctx.TryRollArmor()) break; // 골드 부족 또는 그리드 가득 참
+            ctx.ArmorRollsThisStage++;
+
+            // 가장 낮은 방어구를 입은 캐릭터부터 갈아입는다.
+            foreach (var character in ctx.Party.OrderBy(c => (int)(c.EquippedArmor?.Rarity ?? (ArmorRarity)(-1))))
+                if (ctx.TryEquipArmorFromGrid(character)) break;
+
+            // 파티 누구에게도 도움이 안 되는 방어구(가장 낮은 착용 등급 이하)는 판다.
+            var minWorn = ctx.Party.Min(c => c.EquippedArmor?.Rarity ?? (ArmorRarity)(-1));
+            foreach (var (index, armor) in ctx.Inventory.Grid.OccupiedArmors().ToList())
+            {
+                if (armor.Rarity > minWorn) continue;
+                ctx.Inventory.Grid.RemoveAt(index);
+                ctx.Currency.SellArmor(armor);
+            }
+        }
+        return true;
     }
 
     private static void EquipMinimalArmor(BotContext ctx)

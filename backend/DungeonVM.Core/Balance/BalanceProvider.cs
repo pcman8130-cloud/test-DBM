@@ -53,7 +53,6 @@ public static class BalanceProvider
                 case "armor": merged.Armor = Deserialize<ArmorBalanceSection>(raw, merged.Armor); break;
                 case "vendingmachine": merged.VendingMachine = Deserialize<VendingMachineBalanceSection>(raw, merged.VendingMachine); break;
                 case "wave": merged.Wave = Deserialize<WaveBalanceSection>(raw, merged.Wave); break;
-                case "metaprogression": merged.MetaProgression = Deserialize<MetaProgressionBalanceSection>(raw, merged.MetaProgression); break;
                 case "currency": merged.Currency = Deserialize<CurrencyBalanceSection>(raw, merged.Currency); break;
                 case "stageloop": merged.StageLoop = Deserialize<StageLoopBalanceSection>(raw, merged.StageLoop); break;
                 case "character": merged.Character = Deserialize<CharacterBalanceSection>(raw, merged.Character); break;

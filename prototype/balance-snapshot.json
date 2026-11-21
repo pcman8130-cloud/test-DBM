@@ -73,25 +73,16 @@
     "stage30BossMultiplier": 1.4,
     "stage30BossDamageMultiplier": 0.85
   },
-  "metaProgression": {
-    "maxLevel": 5,
-    "levelCostBase": 20,
-    "levelCostPerLevel": 30,
-    "retireSpeedPerLevel": 0.15,
-    "firstRollTierBoostPerLevel": 0.10,
-    "baseHealthBonusPerLevel": 10
-  },
   "currency": {
     "weaponMarketValueTierBase": 10,
     "armorMarketValues": { "Common": 15, "Rare": 40, "Epic": 90, "Legendary": 200 },
-    "sellRefundRatio": 0.5
+    "sellRefundRatio": 0.5,
+    "flatSellValue": 5
   },
   "stageLoop": {
     "maxStage": 30,
     "victoryGoldBase": 48,
-    "victoryGoldPerStage": 10,
-    "victorySoulsBase": 2,
-    "victorySoulsStageDivisor": 3
+    "victoryGoldPerStage": 10
   },
   "character": {
     "baseHealth": 90,
@@ -155,8 +146,6 @@
     "utilityCooldownReduction": 0.03,
     "midBossUtilityScale": 1.5,
     "bossUtilityScale": 2.0,
-    "midBossBaseSoulsBonus": 5,
-    "bossBaseSoulsBonus": 12,
     "regularGoldOption": 18,
     "midBossGoldOption": 40,
     "bossGoldOption": 75,

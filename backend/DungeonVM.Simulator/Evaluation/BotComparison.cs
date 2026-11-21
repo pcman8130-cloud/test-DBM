@@ -22,7 +22,6 @@ public static class BotComparison
         {
             var bot = BotCatalog.Create(name);
             var rng = new Random(seed);
-            var meta = new MetaProgression();
             var weapons = new WeaponTierMetrics();
             var attempts = new StageAttemptCollector();
             var snap = new Dictionary<int, List<double[]>>();
@@ -47,9 +46,8 @@ public static class BotComparison
 
             for (int i = 0; i < runs; i++)
             {
-                var r = Program.SimulateOneRun(bot, i, rng, meta, weapons, attempts, onStageStart: OnStart);
+                var r = Program.SimulateOneRun(bot, i, rng, weapons, attempts, onStageStart: OnStart);
                 ends.Add(r);
-                Program.InvestMetaSouls(meta);
             }
 
             Console.WriteLine($"\n[{name}] 평균 클리어 {ends.Average(e => e.StagesCleared):F1}스테, 완주 {ends.Count(e => e.Outcome == RunEndReason.Victory) / (double)runs:P1}");

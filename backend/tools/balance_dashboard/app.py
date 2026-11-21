@@ -43,7 +43,6 @@ SECTION_LABELS = {
     "Armor": "방어구 - 회피 상한",
     "VendingMachine": "자판기",
     "Wave": "웨이브 / 몬스터",
-    "MetaProgression": "영혼 스킬트리",
     "Currency": "재화",
     "StageLoop": "스테이지 클리어 보상",
     "Character": "캐릭터",

@@ -25,7 +25,7 @@ python xlsx_to_balance_json.py template balance.xlsx
 
 | 시트 | 내용 |
 |---|---|
-| `Scalars` | `섹션.필드명` 형태의 Key와 Value 두 컬럼. 대부분의 수치(자판기 뽑기 확률, 웨이브 스케일링, 영혼 스킬트리, 속성 룬 효과, 스테이지 선택보상 등)가 여기 있습니다. |
+| `Scalars` | `섹션.필드명` 형태의 Key와 Value 두 컬럼. 대부분의 수치(자판기 뽑기 확률, 웨이브 스케일링, 속성 룬 효과, 스테이지 선택보상 등)가 여기 있습니다. |
 | `Weapons` | 무기 6종의 기초 데미지/공속/체력/특수치 |
 | `ArmorRollRanges` | 방어구 등급별(Common~Legendary) 랜덤 스탯 최소/최대값 |
 | `ArmorMarketValues` | 방어구 등급별 판매 시세 |

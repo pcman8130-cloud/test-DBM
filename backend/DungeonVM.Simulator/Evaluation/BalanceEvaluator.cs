@@ -93,7 +93,6 @@ public static class BalanceEvaluator
     {
         var bot = new BalancedBot();
         var rng = new Random(seed);
-        var meta = new MetaProgression();
         var weapons = new WeaponTierMetrics();
         var stageAttempts = new StageAttemptCollector();
         var b = new Baseline { Runs = runs, Weapons = weapons };
@@ -109,11 +108,10 @@ public static class BalanceEvaluator
 
         for (int i = 0; i < runs; i++)
         {
-            var result = Program.SimulateOneRun(bot, i, rng, meta, weapons, stageAttempts, onStageStart: OnStageStart);
+            var result = Program.SimulateOneRun(bot, i, rng, weapons, stageAttempts, onStageStart: OnStageStart);
             if (result.Outcome == RunEndReason.Victory) b.Clears++;
             b.TotalBottleneckSells += result.GridBottleneckSells;
             b.TotalStagesCleared += result.StagesCleared;
-            Program.InvestMetaSouls(meta);
         }
 
         b.Stages = stageAttempts.ByStage(bot.Name);
@@ -124,17 +122,15 @@ public static class BalanceEvaluator
     {
         var bot = new BalancedBot();
         var rng = new Random(seed);
-        var meta = new MetaProgression();
         var metrics = new WeaponTierMetrics();
         var attempts = new StageAttemptCollector();
         int clears = 0;
 
         for (int i = 0; i < runs; i++)
         {
-            var result = Program.SimulateOneRun(bot, i, rng, meta, metrics, attempts,
+            var result = Program.SimulateOneRun(bot, i, rng, metrics, attempts,
                 forceRelic: (cleared, _) => cleared == stage ? relicId : null);
             if (result.Outcome == RunEndReason.Victory) clears++;
-            Program.InvestMetaSouls(meta);
         }
         return clears / (double)runs;
     }
@@ -218,17 +214,15 @@ public static class BalanceEvaluator
     private static StyleStat MeasureStyle(IBot bot, int runs, int seed)
     {
         var rng = new Random(seed);
-        var meta = new MetaProgression();
         var weapons = new WeaponTierMetrics();
         var attempts = new StageAttemptCollector();
         int clears = 0, stagesCleared = 0;
 
         for (int i = 0; i < runs; i++)
         {
-            var result = Program.SimulateOneRun(bot, i, rng, meta, weapons, attempts);
+            var result = Program.SimulateOneRun(bot, i, rng, weapons, attempts);
             if (result.Outcome == RunEndReason.Victory) clears++;
             stagesCleared += result.StagesCleared;
-            Program.InvestMetaSouls(meta);
         }
         return new StyleStat(bot.Name, runs, clears, stagesCleared / (double)runs);
     }
@@ -305,7 +299,6 @@ public static class BalanceEvaluator
 
         var bot = new PopulationBot();
         var rng = new Random(seed);
-        var meta = new MetaProgression();
         var weapons = new WeaponTierMetrics();
         var attempts = new StageAttemptCollector();
         var byType = new Dictionary<Archetype, List<int>> { [Archetype.Novice] = new(), [Archetype.Casual] = new(), [Archetype.Skilled] = new() };
@@ -314,13 +307,12 @@ public static class BalanceEvaluator
 
         for (int i = 0; i < runs; i++)
         {
-            var r = Program.SimulateOneRun(bot, i, rng, meta, weapons, attempts);
+            var r = Program.SimulateOneRun(bot, i, rng, weapons, attempts);
             if (r.Outcome == RunEndReason.Victory) clears++;
             if (r.StagesCleared >= 10) reach10++;
             if (r.StagesCleared >= 20) reach20++;
             all.Add(r.StagesCleared);
             byType[bot.LastArchetype].Add(r.StagesCleared);
-            Program.InvestMetaSouls(meta);
         }
 
         string Avg(Archetype a) => byType[a].Count == 0 ? "-" : $"{byType[a].Average():F1}";
@@ -355,17 +347,15 @@ public static class BalanceEvaluator
 
             var bot = BotCatalog.Create(botName);
             var rng = new Random(seed);
-            var meta = new MetaProgression();
             var weapons = new WeaponTierMetrics();
             var attempts = new StageAttemptCollector();
             int reached = 0, finalAttempts = 0, finalWins = 0;
             for (int i = 0; i < runs; i++)
             {
-                var r = Program.SimulateOneRun(bot, i, rng, meta, weapons, attempts);
+                var r = Program.SimulateOneRun(bot, i, rng, weapons, attempts);
                 if (r.StagesCleared >= reachStage) reached++;
                 if (r.StagesCleared >= finalStage - 1) finalAttempts++;
                 if (r.StagesCleared >= finalStage) finalWins++;
-                Program.InvestMetaSouls(meta);
             }
 
             string group = $"숙련자 ({botName})";

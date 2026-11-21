@@ -36,7 +36,6 @@ public sealed class SupabaseLogger : IRunLogSink
             outcome = result.Outcome.ToString(),
             stages_cleared = result.StagesCleared,
             final_gold = result.FinalGold,
-            final_souls = result.FinalSouls,
             final_weapons = result.FinalWeapons,
             final_armors = result.FinalArmors,
             grid_bottleneck_sells = result.GridBottleneckSells,

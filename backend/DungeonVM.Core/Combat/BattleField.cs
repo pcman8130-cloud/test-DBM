@@ -64,8 +64,7 @@ public sealed class BattleField
 
     private Monster? FocusTarget() => _monsters.FirstOrDefault(m => m.IsAlive);
 
-    /// <summary>double retireSpeedMultiplier: 유물/스킬로 리타이어 시간이 단축된 경우 1보다 큰 값을 전달.</summary>
-    public RunEndReason Tick(double dt, double retireSpeedMultiplier = 1.0)
+    public RunEndReason Tick(double dt)
     {
         ElapsedSeconds += dt;
 
@@ -129,7 +128,7 @@ public sealed class BattleField
 
         // 3) 리타이어 타이머 진행 (스테이지 클리어 전 자연 부활 가능)
         foreach (var c in _party)
-            c.AdvanceRetireTimer(dt, retireSpeedMultiplier);
+            c.AdvanceRetireTimer(dt);
 
         // 패배 조건은 출격한 모험가 전원이 동시에 전멸(리타이어)하는 경우뿐이다.
         if (FormationManager.PartyWiped(_party))

@@ -157,7 +157,6 @@ create table run_logs (
   outcome text,
   stages_cleared int,
   final_gold int,
-  final_souls int,
   final_weapons text[],
   final_armors text[],
   grid_bottleneck_sells int,

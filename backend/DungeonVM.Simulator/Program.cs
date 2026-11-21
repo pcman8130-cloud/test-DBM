@@ -47,6 +47,12 @@ internal static class Program
                 parsed.RunsPerBot, parsed.Iterations, parsed.MaxChanges, parsed.MockLlm, parsed.Seed, parsed.TargetsPath, parsed.TuneOutDir));
         }
 
+        if (parsed.Stage30Probe is not null)
+            return Evaluation.Stage30Probe.Run(parsed.Stage30Probe.Split(',', StringSplitOptions.RemoveEmptyEntries), parsed.RunsPerBot, parsed.Seed);
+
+        if (parsed.ClearProfile is not null)
+            return Evaluation.ClearProfile.Run(parsed.ClearProfile.Split(',', StringSplitOptions.RemoveEmptyEntries), parsed.RunsPerBot, parsed.Seed);
+
         if (parsed.CompareBots is not null)
             return Evaluation.BotComparison.Run(parsed.CompareBots.Split(',', StringSplitOptions.RemoveEmptyEntries), parsed.RunsPerBot, parsed.Seed);
 
@@ -65,7 +71,6 @@ internal static class Program
             new BalancedBot(BalancedBotProfile.Hoarder), new BalancedBot(BalancedBotProfile.Spender), new BalancedBot(BalancedBotProfile.BossPrep),
             new BalancedBot(BalancedBotProfile.Expert),
         };
-        var metaByBot = bots.ToDictionary(b => b.Name, _ => new MetaProgression());
         var metricsByBot = bots.ToDictionary(b => b.Name, _ => new WeaponTierMetrics());
         var collector = new RunLogCollector();
         var stageAttempts = new StageAttemptCollector();
@@ -87,19 +92,17 @@ internal static class Program
         foreach (var bot in bots)
         {
             var rng = new Random(HashCode.Combine(bot.Name, 42));
-            var meta = metaByBot[bot.Name];
             var metrics = metricsByBot[bot.Name];
 
             for (int i = 0; i < runsPerBot; i++)
             {
-                var result = SimulateOneRun(bot, i, rng, meta, metrics, stageAttempts);
+                var result = SimulateOneRun(bot, i, rng, metrics, stageAttempts);
                 collector.Add(result);
 
                 await fileSink.LogRunAsync(result);
                 if (supabase.IsConfigured)
                     await supabase.LogRunAsync(result);
 
-                InvestMetaSouls(meta);
                 totalRuns++;
                 completedRunsByBot[bot.Name]++;
 
@@ -131,7 +134,7 @@ internal static class Program
         bool Evaluate = false, string? TargetsPath = null, string? EvalOutPath = null,
         int RelicRuns = 2000, bool SkipRelics = false, int Seed = 12345,
         bool Tune = false, int Iterations = 3, int MaxChanges = 4, bool MockLlm = false, string? TuneOutDir = null,
-        bool RelicReport = false, string BotName = "Balanced", int RelicStage = 0, string SplitWeapon = "Bible", string? CompareBots = null);
+        bool RelicReport = false, string BotName = "Balanced", int RelicStage = 0, string SplitWeapon = "Bible", string? CompareBots = null, string? ClearProfile = null, string? Stage30Probe = null);
 
     /// <summary>
     /// "[숫자] [--balance &lt;path&gt;] [--summary &lt;path&gt;] [--progress &lt;path&gt;] [--skip-llm]" 형태를 파싱한다.
@@ -149,7 +152,7 @@ internal static class Program
         bool skipLlm = false;
         bool evaluate = false, skipRelics = false;
         bool tune = false, mockLlm = false, relicReport = false;
-        string? compareBots = null;
+        string? compareBots = null, clearProfile = null, stage30Probe = null;
         string botName = "Balanced";
         int relicStage = 0;
         string splitWeapon = "Bible";
@@ -164,12 +167,17 @@ internal static class Program
                 case "--evaluate":
                     evaluate = true;
                     break;
+                case "--stage30-probe":
+                    if (i + 1 >= args.Length) throw new ArgumentException("--stage30-probe 옵션 뒤에는 봇 이름 목록(쉼표 구분)이 와야 합니다.");
+                    stage30Probe = args[++i];
+                    break;
+                case "--clear-profile":
+                    if (i + 1 >= args.Length) throw new ArgumentException("--clear-profile 옵션 뒤에는 봇 이름 목록(쉼표 구분)이 와야 합니다.");
+                    clearProfile = args[++i];
+                    break;
                 case "--compare-bots":
                     if (i + 1 >= args.Length) throw new ArgumentException("--compare-bots 옵션 뒤에는 봇 이름 목록(쉼표 구분)이 와야 합니다.");
                     compareBots = args[++i];
-                    break;
-                case "--with-meta":
-                    UseMeta = true;
                     break;
                 case "--skip-relics":
                     skipRelics = true;
@@ -264,7 +272,7 @@ internal static class Program
         balancePath ??= Environment.GetEnvironmentVariable("DUNGEONVM_BALANCE_JSON");
         return new ParsedArgs(runsPerBot, balancePath, summaryPath, progressPath, skipLlm,
             evaluate, targetsPath, evalOutPath, relicRuns, skipRelics, seed,
-            tune, iterations, maxChanges, mockLlm, tuneOutDir, relicReport, botName, relicStage, splitWeapon, compareBots);
+            tune, iterations, maxChanges, mockLlm, tuneOutDir, relicReport, botName, relicStage, splitWeapon, compareBots, clearProfile, stage30Probe);
     }
 
     /// <summary>실행 도중 진행 상황을 파일에 덮어쓴다. 웹 UI가 이 파일을 주기적으로 폴링해서 진행률/실시간 지표를 보여준다.</summary>
@@ -314,23 +322,21 @@ internal static class Program
     /// <summary>forceRelic: (클리어한 스테이지, 후보 유물들) → 강제로 고를 유물 Id(null이면 봇 기본 선택). 평가기가 "유물 하나만
     /// 바꿨을 때"의 영향을 분리해서 측정할 때 쓴다. onStageStart: 정비 직후 전투 시작 직전에 (스테이지, StageLoop)로 호출.</summary>
     internal static RunResult SimulateOneRun(
-        IBot bot, int runIndex, Random rng, MetaProgression meta, WeaponTierMetrics metrics, StageAttemptCollector stageAttempts,
+        IBot bot, int runIndex, Random rng, WeaponTierMetrics metrics, StageAttemptCollector stageAttempts,
         Func<int, IReadOnlyList<BossRelic>, string?>? forceRelic = null,
-        Action<int, StageLoop>? onStageStart = null)
+        Action<int, StageLoop>? onStageStart = null,
+        Action<RunResult, StageLoop>? onRunEnd = null)
     {
         var currency = new CurrencyManager();
         var inventory = new InventoryManager();
         int startingSlots = BalanceProvider.Current.CharacterSlots.StartingSlots;
         var party = Enumerable.Range(1, startingSlots)
-            .Select(i => new Character($"Hero{i}", meta.BaseHealthBonus))
+            .Select(i => new Character($"Hero{i}"))
             .ToList();
         var stageLoop = new StageLoop(currency, inventory, party);
-        var ctx = new BotContext(stageLoop, rng, meta);
+        var ctx = new BotContext(stageLoop, rng);
 
         currency.Add(CurrencyType.Gold, StartingGold);
-
-        if (rng.NextDouble() < meta.FirstRollTierBoostChance)
-            stageLoop.Machine.NextRollGuaranteedTier2 = true;
 
         while (!stageLoop.IsRunComplete)
         {
@@ -346,7 +352,7 @@ internal static class Program
             while (outcome == RunEndReason.InProgress && elapsed < MaxSecondsPerStage)
             {
                 bot.OnCombatTick(ctx);
-                outcome = battle.Tick(TickSeconds, meta.RetireSpeedMultiplier);
+                outcome = battle.Tick(TickSeconds);
                 elapsed += TickSeconds;
             }
 
@@ -383,17 +389,20 @@ internal static class Program
                 continue;
             }
 
-            return FinishRun(bot, runIndex, outcome, stageLoop, currency, meta, metrics, ctx);
+            var lost = FinishRun(bot, runIndex, outcome, stageLoop, currency, metrics, ctx);
+            onRunEnd?.Invoke(lost, stageLoop);
+            return lost;
         }
 
-        return FinishRun(bot, runIndex, RunEndReason.Victory, stageLoop, currency, meta, metrics, ctx);
+        var won = FinishRun(bot, runIndex, RunEndReason.Victory, stageLoop, currency, metrics, ctx);
+        onRunEnd?.Invoke(won, stageLoop);
+        return won;
     }
 
     private static RunResult FinishRun(
         IBot bot, int runIndex, RunEndReason outcome, StageLoop stageLoop,
-        CurrencyManager currency, MetaProgression meta, WeaponTierMetrics metrics, BotContext ctx)
+        CurrencyManager currency, WeaponTierMetrics metrics, BotContext ctx)
     {
-        meta.BankSouls(stageLoop.SoulsEarnedThisRun);
         metrics.RecordFinalEquip(stageLoop.Party);
 
         int stagesCleared = Math.Clamp(stageLoop.CurrentStage - 1, 0, StageLoop.MaxStage);
@@ -409,26 +418,10 @@ internal static class Program
             .ToList();
 
         return new RunResult(
-            bot.Name, runIndex, outcome, stagesCleared, currency.Gold, currency.Souls,
+            bot.Name, runIndex, outcome, stagesCleared, currency.Gold,
             weapons, armors, ctx.GridBottleneckSells, ctx.RuneAvoidanceSkips, ctx.SavingsHolds,
             stageLoop.Party.Count, stageLoop.Inventory.Grid.UnlockedCells,
             stageLoop.Machine.AttackUpgradeLevel, stageLoop.Machine.DefenseUpgradeLevel);
-    }
-
-    /// <summary>--with-meta: 런이 끝날 때마다 영혼을 투자한다(기본은 끔 — HTML·Unity 게임에는 영혼 시스템이 없다).</summary>
-    internal static bool UseMeta;
-
-    internal static void InvestMetaSouls(MetaProgression meta)
-    {
-        if (!UseMeta && Environment.GetEnvironmentVariable("DVM_WITH_META") != "1") return;
-        bool progressed = true;
-        while (progressed)
-        {
-            bool a = meta.TryUpgradeRetireTimeReduction();
-            bool b = meta.TryUpgradeFirstRollTierBoost();
-            bool c = meta.TryUpgradeBaseStat();
-            progressed = a || b || c;
-        }
     }
 
     private static void PrintReport(IBot[] bots, RunLogCollector collector, Dictionary<string, WeaponTierMetrics> metricsByBot)

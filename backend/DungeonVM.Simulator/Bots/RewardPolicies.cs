@@ -139,13 +139,15 @@ public sealed record PlanGoal(PlanGoalKind Kind, int Target, int GiveUpStage = i
 /// 합성 짝이 없는 CullMaxLevel 이하 무기를 그리드에서 팔아 칸과 골드를 확보한다(사람이 하는 정리).
 /// MakeRoomWhenFull이 켜져 있으면 그리드가 가득 찰 때 장착 중인 무기보다 낮은 레벨의 합성 짝 없는 무기를 팔아 칸을 만들고,
 /// 그래도 가득 차 있고 골드가 남으면 그리드를 확장한다(사람은 가득 차면 뽑기를 멈추지 않고 정리/확장한다).
+/// ArmorTarget이 있으면 파티 전원이 이 등급 이상의 방어구를 입을 때까지 골드를 무기 뽑기보다 먼저 방어구 뽑기에 쓰고(최고 등급만 남기고
+/// 나머지는 즉시 판매), 계획(Plan)이 있으면 계획을 다 끝낸 뒤에만 한다("방어구를 파밍하는 플레이어" 가정).
 /// SocketRunes가 켜져 있으면 보관함의 룬을 아직 룬이 없는 무기에 꽂는다(무기가 높은 캐릭터부터. 사람은 룬을 얻으면 바로 끼운다).
 /// </summary>
 public sealed record BalancedBotProfile(
     string Name, int SaveStagesAhead, RewardPolicy Reward, IReadOnlyList<PlanGoal>? Plan = null,
     bool HoldGold = false, int OpeningWeapons = 0,
     IReadOnlyList<WeaponType>? AlwaysSell = null, int CullVendLevel = 0, int CullMaxLevel = 0, bool MakeRoomWhenFull = false, bool SocketRunes = false,
-    bool RandomCandidates = false, bool RandomRelics = false)
+    bool RandomCandidates = false, bool RandomRelics = false, ArmorRarity? ArmorTarget = null)
 {
     /// <summary>밸런스 평가기가 기준으로 쓰는 "평균적인 사람" 성향. 인원을 먼저 채우고 번 돈은 곧 쓰며(최대 3스테이지 수입 안에 모일 목표만 저축),
     /// 상자는 능력치 상자 위주지만 룬이 비어 있는 무기가 있으면 특수 상자를 열어 룬을 얻고 바로 무기에 꽂는다.
@@ -166,6 +168,12 @@ public sealed record BalancedBotProfile(
 
     /// <summary>초보: 상자·후보·유물을 모두 무작위로 고르고, 그리드가 꽉 차도 정리하지 않으며 룬도 안 꽂고 번 돈은 바로 쓴다.</summary>
     public static BalancedBotProfile Newbie { get; } = RandomAll with { Name = "Newbie", SaveStagesAhead = 1, MakeRoomWhenFull = false, SocketRunes = false };
+
+    /// <summary>방어구 파밍형(에픽): 평균 플레이어 성향에 파티 전원이 에픽 이상 방어구를 입을 때까지 방어구 뽑기에 골드를 쓴다.</summary>
+    public static BalancedBotProfile ArmorEpic { get; } = Default with { Name = "ArmorEpic", ArmorTarget = ArmorRarity.Epic };
+
+    /// <summary>방어구 파밍형(레전더리): 파티 전원이 레전더리 방어구를 입을 때까지 방어구 뽑기에 골드를 쓴다(확률이 1%라 사실상 상한 실험).</summary>
+    public static BalancedBotProfile ArmorLegend { get; } = Default with { Name = "ArmorLegend", ArmorTarget = ArmorRarity.Legendary };
 
     /// <summary>저축형: 목표 금액을 오래 모아서 한꺼번에 쓰고, 상자는 항상 장비 상자.</summary>
     public static BalancedBotProfile Hoarder { get; } = new("Hoarder", 6, RewardPolicies.AlwaysEquipment, SocketRunes: true);
@@ -194,6 +202,12 @@ public sealed record BalancedBotProfile(
         new(PlanGoalKind.PartySize, 5),
     }, HoldGold: true, OpeningWeapons: 3,
         AlwaysSell: new[] { WeaponType.Staff }, CullVendLevel: 4, CullMaxLevel: 2, MakeRoomWhenFull: true);
+
+    /// <summary>숙련자 루트를 다 끝낸 뒤(5명·파티 전원 무기 5레벨 등) 방어구를 에픽까지 파밍하는 변형.</summary>
+    public static BalancedBotProfile ExpertArmorEpic { get; } = Expert with { Name = "ExpertArmorEpic", ArmorTarget = ArmorRarity.Epic };
+
+    /// <summary>숙련자 루트를 다 끝낸 뒤 방어구를 레전더리까지 파밍하는 변형.</summary>
+    public static BalancedBotProfile ExpertArmorLegend { get; } = Expert with { Name = "ExpertArmorLegend", ArmorTarget = ArmorRarity.Legendary };
 
     /// <summary>숙련자 루트에서 상자만 항상 장비 상자로 고르는 변형. "능력치 상자를 안 골라도(무기 키우기 중심) 숙련자가 후반을 깰 수 있는가"를
     /// 재는 용도 — Expert(능력치 상자 위주)와 둘 다 후반에 도달해야 무기 성장이 핵심인 밸런스다.</summary>
